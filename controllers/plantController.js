@@ -58,9 +58,22 @@ const updatePlant = async (req, res) => {
     if (!plant) {
       return res.status(404).json({ message: "Növény nem található!" });
     }
-    await plant.update(req.body);
+    const updateData = {
+      name: req.body.name,
+      latin_name: req.body.latin_name,
+      description: req.body.description,
+      type: req.body.type,
+      difficulty: req.body.difficulty,
+      watering_frequency: req.body.watering_frequency,
+      sunlight: req.body.sunlight,
+    };
+    if (req.file) {
+      updateData.image = req.file.filename;
+    }
+    await plant.update(updateData);
     res.json({ message: "Növény sikeresen frissítve!", plant });
   } catch (err) {
+    console.error("Update error:", err);
     res.status(500).json({ message: "Szerver hiba!", error: err.message });
   }
 };

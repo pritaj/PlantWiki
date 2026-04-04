@@ -110,21 +110,22 @@ async function loadPlants() {
   container.innerHTML = plants
     .map(
       (plant) => `
-    <div class="col-md-4 plant-card" data-type="${plant.type}" data-difficulty="${plant.difficulty}">
-      <div class="card h-100">
-        <div class="card-body">
-          <h5 class="card-title text-success">${plant.name}</h5>
-          <p class="text-muted fst-italic">${plant.latin_name || ""}</p>
-          <p class="card-text">${plant.description || ""}</p>
-          <span class="badge bg-success">${plant.type}</span>
-          <span class="badge bg-secondary">${plant.difficulty}</span>
-        </div>
-        <div class="card-footer text-muted">
-          💧 ${plant.watering_frequency || "N/A"} &nbsp; ☀️ ${plant.sunlight || "N/A"}
-        </div>
+  <div class="col-md-4 plant-card" data-type="${plant.type}" data-difficulty="${plant.difficulty}">
+    <div class="card h-100">
+      ${plant.image ? `<img src="/uploads/${plant.image}" class="card-img-top" style="height: 200px; object-fit: cover;">` : '<div class="bg-light d-flex align-items-center justify-content-center" style="height: 200px;">🌱</div>'}
+      <div class="card-body">
+        <h5 class="card-title text-success">${plant.name}</h5>
+        <p class="text-muted fst-italic">${plant.latin_name || ""}</p>
+        <p class="card-text">${plant.description || ""}</p>
+        <span class="badge bg-success">${plant.type}</span>
+        <span class="badge bg-secondary">${plant.difficulty}</span>
+      </div>
+      <div class="card-footer text-muted">
+        💧 ${plant.watering_frequency || "N/A"} &nbsp; ☀️ ${plant.sunlight || "N/A"}
       </div>
     </div>
-  `,
+  </div>
+`,
     )
     .join("");
 
@@ -173,20 +174,21 @@ async function loadProducts() {
   container.innerHTML = products
     .map(
       (product) => `
-    <div class="col-md-4 product-card" data-category="${product.category}">
-      <div class="card h-100">
-        <div class="card-body">
-          <h5 class="card-title text-success">${product.name}</h5>
-          <p class="card-text">${product.description || ""}</p>
-          <span class="badge bg-success">${product.category}</span>
-        </div>
-        <div class="card-footer d-flex justify-content-between align-items-center">
-          <strong class="text-success">${product.price} Ft</strong>
-          <span class="text-muted">Készlet: ${product.stock}</span>
-        </div>
+  <div class="col-md-4 product-card" data-category="${product.category}">
+    <div class="card h-100">
+      ${product.image ? `<img src="/uploads/${product.image}" class="card-img-top" style="height: 200px; object-fit: cover;">` : '<div class="bg-light d-flex align-items-center justify-content-center" style="height: 200px;">🛒</div>'}
+      <div class="card-body">
+        <h5 class="card-title text-success">${product.name}</h5>
+        <p class="card-text">${product.description || ""}</p>
+        <span class="badge bg-success">${product.category}</span>
+      </div>
+      <div class="card-footer d-flex justify-content-between align-items-center">
+        <strong class="text-success">${product.price} Ft</strong>
+        <span class="text-muted">Készlet: ${product.stock}</span>
       </div>
     </div>
-  `,
+  </div>
+`,
     )
     .join("");
 
@@ -325,22 +327,31 @@ async function addPlant() {
   if (!valid) return;
 
   const token = getToken();
+  const formData = new FormData();
+  formData.append("name", document.getElementById("add-name").value);
+  formData.append("latin_name", document.getElementById("add-latin").value);
+  formData.append(
+    "description",
+    document.getElementById("add-description").value,
+  );
+  formData.append("type", document.getElementById("add-type").value);
+  formData.append(
+    "difficulty",
+    document.getElementById("add-difficulty").value,
+  );
+  formData.append(
+    "watering_frequency",
+    document.getElementById("add-watering").value,
+  );
+  formData.append("sunlight", document.getElementById("add-sunlight").value);
+  const imageFile = document.getElementById("add-image").files[0];
+  if (imageFile) formData.append("image", imageFile);
+
   try {
     const res = await fetch("/api/plants", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({
-        name: document.getElementById("add-name").value,
-        latin_name: document.getElementById("add-latin").value,
-        description: document.getElementById("add-description").value,
-        type: document.getElementById("add-type").value,
-        difficulty: document.getElementById("add-difficulty").value,
-        watering_frequency: document.getElementById("add-watering").value,
-        sunlight: document.getElementById("add-sunlight").value,
-      }),
+      headers: { Authorization: `Bearer ${token}` },
+      body: formData,
     });
     const data = await res.json();
 
@@ -417,31 +428,41 @@ async function addProduct() {
   if (!valid) return;
 
   const token = getToken();
-  const res = await fetch("/api/shop/products", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    },
-    body: JSON.stringify({
-      name: document.getElementById("add-product-name").value,
-      description: document.getElementById("add-product-description").value,
-      price: document.getElementById("add-product-price").value,
-      stock: document.getElementById("add-product-stock").value,
-      category: document.getElementById("add-product-category").value,
-    }),
-  });
-  const data = await res.json();
+  const formData = new FormData();
+  formData.append("name", document.getElementById("add-product-name").value);
+  formData.append(
+    "description",
+    document.getElementById("add-product-description").value,
+  );
+  formData.append("price", document.getElementById("add-product-price").value);
+  formData.append("stock", document.getElementById("add-product-stock").value);
+  formData.append(
+    "category",
+    document.getElementById("add-product-category").value,
+  );
+  const imageFile = document.getElementById("add-product-image").files[0];
+  if (imageFile) formData.append("image", imageFile);
 
-  if (res.ok) {
-    bootstrap.Modal.getInstance(
-      document.getElementById("addProductModal"),
-    ).hide();
-    loadAdminProducts();
-  } else {
-    const err = document.getElementById("add-product-error");
-    err.style.display = "block";
-    err.textContent = data.message;
+  try {
+    const res = await fetch("/api/shop/products", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}` },
+      body: formData,
+    });
+    const data = await res.json();
+
+    if (res.ok) {
+      bootstrap.Modal.getInstance(
+        document.getElementById("addProductModal"),
+      ).hide();
+      loadAdminProducts();
+    } else {
+      const err = document.getElementById("add-product-error");
+      err.style.display = "block";
+      err.textContent = data.message;
+    }
+  } catch (err) {
+    console.error("Hiba:", err);
   }
 }
 
@@ -637,21 +658,30 @@ async function editPlant() {
 
   const token = getToken();
   const id = document.getElementById("edit-plant-id").value;
+  const formData = new FormData();
+  formData.append("name", document.getElementById("edit-name").value);
+  formData.append("latin_name", document.getElementById("edit-latin").value);
+  formData.append(
+    "description",
+    document.getElementById("edit-description").value,
+  );
+  formData.append("type", document.getElementById("edit-type").value);
+  formData.append(
+    "difficulty",
+    document.getElementById("edit-difficulty").value,
+  );
+  formData.append(
+    "watering_frequency",
+    document.getElementById("edit-watering").value,
+  );
+  formData.append("sunlight", document.getElementById("edit-sunlight").value);
+  const imageFile = document.getElementById("edit-image").files[0];
+  if (imageFile) formData.append("image", imageFile);
+
   const res = await fetch(`/api/plants/${id}`, {
     method: "PUT",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    },
-    body: JSON.stringify({
-      name: document.getElementById("edit-name").value,
-      latin_name: document.getElementById("edit-latin").value,
-      description: document.getElementById("edit-description").value,
-      type: document.getElementById("edit-type").value,
-      difficulty: document.getElementById("edit-difficulty").value,
-      watering_frequency: document.getElementById("edit-watering").value,
-      sunlight: document.getElementById("edit-sunlight").value,
-    }),
+    headers: { Authorization: `Bearer ${token}` },
+    body: formData,
   });
 
   if (res.ok) {
@@ -697,19 +727,25 @@ async function editProduct() {
 
   const token = getToken();
   const id = document.getElementById("edit-product-id").value;
+  const formData = new FormData();
+  formData.append("name", document.getElementById("edit-product-name").value);
+  formData.append(
+    "description",
+    document.getElementById("edit-product-description").value,
+  );
+  formData.append("price", document.getElementById("edit-product-price").value);
+  formData.append("stock", document.getElementById("edit-product-stock").value);
+  formData.append(
+    "category",
+    document.getElementById("edit-product-category").value,
+  );
+  const imageFile = document.getElementById("edit-product-image").files[0];
+  if (imageFile) formData.append("image", imageFile);
+
   const res = await fetch(`/api/shop/products/${id}`, {
     method: "PUT",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    },
-    body: JSON.stringify({
-      name: document.getElementById("edit-product-name").value,
-      description: document.getElementById("edit-product-description").value,
-      price: document.getElementById("edit-product-price").value,
-      stock: document.getElementById("edit-product-stock").value,
-      category: document.getElementById("edit-product-category").value,
-    }),
+    headers: { Authorization: `Bearer ${token}` },
+    body: formData,
   });
 
   if (res.ok) {

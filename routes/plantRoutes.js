@@ -8,14 +8,15 @@ const {
   deletePlant,
 } = require("../controllers/plantController");
 const authMiddleware = require("../middleware/authMiddleware");
+const upload = require("../middleware/uploadMiddleware");
 
-// Publikus végpontok (nem kell bejelentkezés)
+// Publikus végpontok
 router.get("/", getAllPlants);
 router.get("/:id", getPlantById);
 
 // Védett végpontok (kell token)
-router.post("/", authMiddleware, createPlant);
-router.put("/:id", authMiddleware, updatePlant);
+router.post("/", authMiddleware, upload.single("image"), createPlant);
+router.put("/:id", authMiddleware, upload.single("image"), updatePlant);
 router.delete("/:id", authMiddleware, deletePlant);
 
 module.exports = router;

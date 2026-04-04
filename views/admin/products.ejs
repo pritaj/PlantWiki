@@ -77,6 +77,15 @@
           </select>
         </div>
       </div>
+      <div class="mb-3">
+        <label class="form-label">Kép feltöltése</label>
+        <input
+          type="file"
+          id="add-product-image"
+          class="form-control"
+          accept="image/*"
+        />
+      </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
           Mégse
@@ -132,6 +141,16 @@
             <option value="kiegészítő">Kiegészítő</option>
           </select>
         </div>
+      </div>
+      <div class="mb-3">
+        <label class="form-label">Kép feltöltése (opcionális)</label>
+        <input
+          type="file"
+          id="edit-product-image"
+          class="form-control"
+          accept="image/*"
+        />
+        <div id="current-product-image" class="mt-2"></div>
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
