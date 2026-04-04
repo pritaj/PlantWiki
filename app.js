@@ -1,11 +1,17 @@
 const express = require("express");
+const path = require("path");
 const app = express();
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use("/uploads", express.static("public/uploads"));
+app.use(express.static("public"));
 
-// Routes
+// EJS beállítás
+app.set("view engine", "ejs");
+app.set("views", path.join(__dirname, "views"));
+
+// API Routes
 const authRoutes = require("./routes/authRoutes");
 const plantRoutes = require("./routes/plantRoutes");
 const shopRoutes = require("./routes/shopRoutes");
@@ -18,8 +24,8 @@ app.use("/api/shop", shopRoutes);
 app.use("/api/wiki", wikiRoutes);
 app.use("/api/nutrients", nutrientRoutes);
 
-app.get("/", (req, res) => {
-  res.json({ message: "🌿 PlantWiki API fut!" });
-});
+// View Routes
+const viewRoutes = require("./routes/viewRoutes");
+app.use("/", viewRoutes);
 
 module.exports = app;
