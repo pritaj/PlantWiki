@@ -95,4 +95,61 @@
   </div>
 </div>
 
+<!-- Szerkesztés modal -->
+<div class="modal fade" id="editArticleModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Wiki cikk szerkesztése</h5>
+        <button
+          type="button"
+          class="btn-close"
+          data-bs-dismiss="modal"
+        ></button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="edit-article-id" />
+        <div class="mb-3">
+          <label class="form-label">Cím</label>
+          <input type="text" id="edit-article-title" class="form-control" />
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Slug (URL)</label>
+          <input type="text" id="edit-article-slug" class="form-control" />
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Tartalom</label>
+          <textarea
+            id="edit-article-content"
+            class="form-control"
+            rows="5"
+          ></textarea>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Kategória</label>
+          <select id="edit-article-category" class="form-select">
+            <option value="öntözés">Öntözés</option>
+            <option value="betegségek">Betegségek</option>
+            <option value="kártevők">Kártevők</option>
+            <option value="szaporítás">Szaporítás</option>
+            <option value="szezonális gondozás">Szezonális gondozás</option>
+            <option value="egyéb">Egyéb</option>
+          </select>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Növény ID (opcionális)</label>
+          <input type="number" id="edit-article-plantid" class="form-control" />
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+          Mégse
+        </button>
+        <button type="button" class="btn btn-warning" onclick="editArticle()">
+          Mentés
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
 <%- include('../partials/footer') %>

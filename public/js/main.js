@@ -3,6 +3,17 @@ const getToken = () => localStorage.getItem("token");
 const setToken = (token) => localStorage.setItem("token", token);
 const removeToken = () => localStorage.removeItem("token");
 
+// Validáció
+function validateFields(fields) {
+  for (const field of fields) {
+    if (!field.value || field.value.trim() === "") {
+      alert(`A "${field.label}" mező kitöltése kötelező!`);
+      document.getElementById(field.id).focus();
+      return false;
+    }
+  }
+  return true;
+}
 // Auth funkciók
 async function login() {
   const email = document.getElementById("email").value;
@@ -266,34 +277,52 @@ async function loadAdminPlants() {
 }
 
 async function addPlant() {
-  const token = getToken();
-  const res = await fetch("/api/plants", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
+  const valid = validateFields([
+    {
+      id: "add-name",
+      label: "Név",
+      value: document.getElementById("add-name").value,
     },
-    body: JSON.stringify({
-      name: document.getElementById("add-name").value,
-      latin_name: document.getElementById("add-latin").value,
-      description: document.getElementById("add-description").value,
-      type: document.getElementById("add-type").value,
-      difficulty: document.getElementById("add-difficulty").value,
-      watering_frequency: document.getElementById("add-watering").value,
-      sunlight: document.getElementById("add-sunlight").value,
-    }),
-  });
-  const data = await res.json();
+    {
+      id: "add-watering",
+      label: "Öntözési gyakoriság",
+      value: document.getElementById("add-watering").value,
+    },
+  ]);
+  if (!valid) return;
 
-  if (res.ok) {
-    bootstrap.Modal.getInstance(
-      document.getElementById("addPlantModal"),
-    ).hide();
-    loadAdminPlants();
-  } else {
-    const err = document.getElementById("add-error");
-    err.style.display = "block";
-    err.textContent = data.message;
+  const token = getToken();
+  try {
+    const res = await fetch("/api/plants", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        name: document.getElementById("add-name").value,
+        latin_name: document.getElementById("add-latin").value,
+        description: document.getElementById("add-description").value,
+        type: document.getElementById("add-type").value,
+        difficulty: document.getElementById("add-difficulty").value,
+        watering_frequency: document.getElementById("add-watering").value,
+        sunlight: document.getElementById("add-sunlight").value,
+      }),
+    });
+    const data = await res.json();
+
+    if (res.ok) {
+      bootstrap.Modal.getInstance(
+        document.getElementById("addPlantModal"),
+      ).hide();
+      loadAdminPlants();
+    } else {
+      const err = document.getElementById("add-error");
+      err.style.display = "block";
+      err.textContent = data.message;
+    }
+  } catch (err) {
+    console.error("Hiba:", err);
   }
 }
 
@@ -335,6 +364,25 @@ async function loadAdminProducts() {
 }
 
 async function addProduct() {
+  const valid = validateFields([
+    {
+      id: "add-product-name",
+      label: "Név",
+      value: document.getElementById("add-product-name").value,
+    },
+    {
+      id: "add-product-price",
+      label: "Ár",
+      value: document.getElementById("add-product-price").value,
+    },
+    {
+      id: "add-product-stock",
+      label: "Készlet",
+      value: document.getElementById("add-product-stock").value,
+    },
+  ]);
+  if (!valid) return;
+
   const token = getToken();
   const res = await fetch("/api/shop/products", {
     method: "POST",
@@ -399,6 +447,7 @@ async function loadAdminWiki() {
       <td>${article.category}</td>
       <td>${article.Plant ? article.Plant.name : "-"}</td>
       <td>
+        <button class="btn btn-sm btn-warning me-1" onclick="openEditArticle(${article.id}, '${article.title.replace(/'/g, "\\'")}', '${article.slug}', '${article.content.replace(/'/g, "\\'")}', '${article.category}', ${article.plantId || null})">Szerkesztés</button>
         <button class="btn btn-sm btn-danger" onclick="deleteArticle(${article.id})">Törlés</button>
       </td>
     </tr>
@@ -408,38 +457,60 @@ async function loadAdminWiki() {
 }
 
 async function addArticle() {
+  const valid = validateFields([
+    {
+      id: "add-article-title",
+      label: "Cím",
+      value: document.getElementById("add-article-title").value,
+    },
+    {
+      id: "add-article-slug",
+      label: "Slug",
+      value: document.getElementById("add-article-slug").value,
+    },
+    {
+      id: "add-article-content",
+      label: "Tartalom",
+      value: document.getElementById("add-article-content").value,
+    },
+  ]);
+  if (!valid) return;
+
   const token = getToken();
   const plantId = document.getElementById("add-article-plantid").value;
-  const res = await fetch("/api/wiki", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    },
-    body: JSON.stringify({
-      title: document.getElementById("add-article-title").value,
-      slug: document.getElementById("add-article-slug").value,
-      content: document.getElementById("add-article-content").value,
-      category: document.getElementById("add-article-category").value,
-      plantId: plantId ? parseInt(plantId) : null,
-    }),
-  });
-  const data = await res.json();
+  try {
+    const res = await fetch("/api/wiki", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        title: document.getElementById("add-article-title").value,
+        slug: document.getElementById("add-article-slug").value,
+        content: document.getElementById("add-article-content").value,
+        category: document.getElementById("add-article-category").value,
+        plantId: plantId ? parseInt(plantId) : null,
+      }),
+    });
+    const data = await res.json();
 
-  if (res.ok) {
-    document.getElementById("add-article-error").style.display = "none";
-    const modal = bootstrap.Modal.getInstance(
-      document.getElementById("addArticleModal"),
-    );
-    if (modal) modal.hide();
-    loadAdminWiki();
-  } else {
-    const err = document.getElementById("add-article-error");
-    err.style.display = "block";
-    err.textContent = data.message;
+    if (res.ok) {
+      document.getElementById("add-article-error").style.display = "none";
+      const modal = bootstrap.Modal.getInstance(
+        document.getElementById("addArticleModal"),
+      );
+      if (modal) modal.hide();
+      loadAdminWiki();
+    } else {
+      const err = document.getElementById("add-article-error");
+      err.style.display = "block";
+      err.textContent = data.message;
+    }
+  } catch (err) {
+    console.error("Hiba:", err);
   }
 }
-
 async function deleteArticle(id) {
   if (!confirm("Biztosan törlöd ezt a cikket?")) return;
   const token = getToken();
@@ -517,6 +588,20 @@ function openEditPlant(
 }
 
 async function editPlant() {
+  const valid = validateFields([
+    {
+      id: "edit-name",
+      label: "Név",
+      value: document.getElementById("edit-name").value,
+    },
+    {
+      id: "edit-watering",
+      label: "Öntözési gyakoriság",
+      value: document.getElementById("edit-watering").value,
+    },
+  ]);
+  if (!valid) return;
+
   const token = getToken();
   const id = document.getElementById("edit-plant-id").value;
   const res = await fetch(`/api/plants/${id}`, {
@@ -558,6 +643,25 @@ function openEditProduct(id, name, description, price, stock, category) {
 }
 
 async function editProduct() {
+  const valid = validateFields([
+    {
+      id: "edit-product-name",
+      label: "Név",
+      value: document.getElementById("edit-product-name").value,
+    },
+    {
+      id: "edit-product-price",
+      label: "Ár",
+      value: document.getElementById("edit-product-price").value,
+    },
+    {
+      id: "edit-product-stock",
+      label: "Készlet",
+      value: document.getElementById("edit-product-stock").value,
+    },
+  ]);
+  if (!valid) return;
+
   const token = getToken();
   const id = document.getElementById("edit-product-id").value;
   const res = await fetch(`/api/shop/products/${id}`, {
@@ -580,6 +684,66 @@ async function editProduct() {
       document.getElementById("editProductModal"),
     ).hide();
     loadAdminProducts();
+  } else {
+    const data = await res.json();
+    alert(data.message);
+  }
+}
+
+function openEditArticle(id, title, slug, content, category, plantId) {
+  document.getElementById("edit-article-id").value = id;
+  document.getElementById("edit-article-title").value = title;
+  document.getElementById("edit-article-slug").value = slug;
+  document.getElementById("edit-article-content").value = content;
+  document.getElementById("edit-article-category").value = category;
+  document.getElementById("edit-article-plantid").value = plantId || "";
+  new bootstrap.Modal(document.getElementById("editArticleModal")).show();
+}
+
+async function editArticle() {
+  const valid = validateFields([
+    {
+      id: "edit-article-title",
+      label: "Cím",
+      value: document.getElementById("edit-article-title").value,
+    },
+    {
+      id: "edit-article-slug",
+      label: "Slug",
+      value: document.getElementById("edit-article-slug").value,
+    },
+    {
+      id: "edit-article-content",
+      label: "Tartalom",
+      value: document.getElementById("edit-article-content").value,
+    },
+  ]);
+  if (!valid) return;
+
+  const token = getToken();
+  const id = document.getElementById("edit-article-id").value;
+  const plantId = document.getElementById("edit-article-plantid").value;
+
+  const res = await fetch(`/api/wiki/${id}`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({
+      title: document.getElementById("edit-article-title").value,
+      slug: document.getElementById("edit-article-slug").value,
+      content: document.getElementById("edit-article-content").value,
+      category: document.getElementById("edit-article-category").value,
+      plantId: plantId ? parseInt(plantId) : null,
+    }),
+  });
+
+  if (res.ok) {
+    bootstrap.Modal.getInstance(
+      document.getElementById("editArticleModal"),
+    ).hide();
+    loadAdminWiki();
   } else {
     const data = await res.json();
     alert(data.message);
