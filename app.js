@@ -10,11 +10,13 @@ const authRoutes = require("./routes/authRoutes");
 const plantRoutes = require("./routes/plantRoutes");
 const shopRoutes = require("./routes/shopRoutes");
 const wikiRoutes = require("./routes/wikiRoutes");
+const nutrientRoutes = require("./routes/nutrientRoutes");
 
 app.use("/api/auth", authRoutes);
 app.use("/api/plants", plantRoutes);
 app.use("/api/shop", shopRoutes);
 app.use("/api/wiki", wikiRoutes);
+app.use("/api/nutrients", nutrientRoutes);
 
 app.get("/", (req, res) => {
   res.json({ message: "🌿 PlantWiki API fut!" });
