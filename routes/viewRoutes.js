@@ -29,4 +29,8 @@ router.get("/auth/register", (req, res) => {
   res.render("auth/register");
 });
 
+router.get("/profile", (req, res) => {
+  res.render("profile");
+});
+
 module.exports = router;

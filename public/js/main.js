@@ -3,6 +3,39 @@ const getToken = () => localStorage.getItem("token");
 const setToken = (token) => localStorage.setItem("token", token);
 const removeToken = () => localStorage.removeItem("token");
 
+// Navbar frissítés
+function updateNavbar() {
+  const token = getToken();
+  const nav = document.getElementById("auth-nav");
+  if (!nav) return;
+
+  if (token) {
+    try {
+      const payload = JSON.parse(atob(token.split(".")[1]));
+      const isAdmin = payload.role === "admin";
+      nav.innerHTML = `
+        ${isAdmin ? '<li class="nav-item"><a class="nav-link" href="/admin">⚙️ Admin</a></li>' : ""}
+        <li class="nav-item"><a class="nav-link" href="/profile">👤 Profil</a></li>
+        <li class="nav-item"><a class="nav-link" href="#" onclick="logout()">Kijelentkezés</a></li>
+      `;
+    } catch (e) {
+      nav.innerHTML = `
+        <li class="nav-item"><a class="nav-link" href="/auth/login">Bejelentkezés</a></li>
+        <li class="nav-item"><a class="nav-link" href="/auth/register">Regisztráció</a></li>
+      `;
+    }
+  } else {
+    nav.innerHTML = `
+      <li class="nav-item"><a class="nav-link" href="/auth/login">Bejelentkezés</a></li>
+      <li class="nav-item"><a class="nav-link" href="/auth/register">Regisztráció</a></li>
+    `;
+  }
+}
+
+function logout() {
+  removeToken();
+  window.location.href = "/";
+}
 // Validáció
 function validateFields(fields) {
   for (const field of fields) {
@@ -749,8 +782,38 @@ async function editArticle() {
     alert(data.message);
   }
 }
+async function loadProfile() {
+  const content = document.getElementById("profile-content");
+  if (!content) return;
+
+  const token = getToken();
+  if (!token) {
+    window.location.href = "/auth/login";
+    return;
+  }
+
+  const res = await fetch("/api/auth/me", {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+
+  if (res.ok) {
+    const user = await res.json();
+    content.innerHTML = `
+      <table class="table">
+        <tr><td><strong>Felhasználónév</strong></td><td>${user.username}</td></tr>
+        <tr><td><strong>Email</strong></td><td>${user.email}</td></tr>
+        <tr><td><strong>Szerepkör</strong></td><td>${user.role}</td></tr>
+      </table>
+      <button class="btn btn-danger w-100" onclick="logout()">Kijelentkezés</button>
+    `;
+  } else {
+    window.location.href = "/auth/login";
+  }
+}
 // Oldalbetöltéskor admin funkciók
 document.addEventListener("DOMContentLoaded", () => {
+  updateNavbar();
+  loadProfile();
   loadPlants();
   loadProducts();
   loadWiki();
