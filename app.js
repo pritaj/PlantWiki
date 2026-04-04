@@ -9,10 +9,12 @@ app.use("/uploads", express.static("public/uploads"));
 const authRoutes = require("./routes/authRoutes");
 const plantRoutes = require("./routes/plantRoutes");
 const shopRoutes = require("./routes/shopRoutes");
+const wikiRoutes = require("./routes/wikiRoutes");
 
 app.use("/api/auth", authRoutes);
 app.use("/api/plants", plantRoutes);
 app.use("/api/shop", shopRoutes);
+app.use("/api/wiki", wikiRoutes);
 
 app.get("/", (req, res) => {
   res.json({ message: "🌿 PlantWiki API fut!" });
