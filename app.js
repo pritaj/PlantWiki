@@ -26,6 +26,9 @@ app.use("/api/nutrients", nutrientRoutes);
 
 // View Routes
 const viewRoutes = require("./routes/viewRoutes");
+const adminRoutes = require("./routes/adminRoutes");
+
 app.use("/", viewRoutes);
+app.use("/admin", adminRoutes);
 
 module.exports = app;

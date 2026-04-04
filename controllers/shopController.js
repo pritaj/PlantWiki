@@ -110,10 +110,68 @@ const getMyOrders = async (req, res) => {
   }
 };
 
+// Termék törlése
+const deleteProduct = async (req, res) => {
+  try {
+    const product = await Product.findByPk(req.params.id);
+    if (!product) {
+      return res.status(404).json({ message: "Termék nem található!" });
+    }
+    await product.destroy();
+    res.json({ message: "Termék sikeresen törölve!" });
+  } catch (err) {
+    res.status(500).json({ message: "Szerver hiba!", error: err.message });
+  }
+};
+
+// Rendelés státusz frissítése
+const updateOrderStatus = async (req, res) => {
+  try {
+    const order = await Order.findByPk(req.params.id);
+    if (!order) {
+      return res.status(404).json({ message: "Rendelés nem található!" });
+    }
+    await order.update({ status: req.body.status });
+    res.json({ message: "Státusz sikeresen frissítve!", order });
+  } catch (err) {
+    res.status(500).json({ message: "Szerver hiba!", error: err.message });
+  }
+};
+
+// Összes rendelés (admin)
+const getAllOrders = async (req, res) => {
+  try {
+    const orders = await Order.findAll({
+      include: [{ model: OrderItem, include: [Product] }],
+    });
+    res.json(orders);
+  } catch (err) {
+    res.status(500).json({ message: "Szerver hiba!", error: err.message });
+  }
+};
+
+// Termék szerkesztése
+const updateProduct = async (req, res) => {
+  try {
+    const product = await Product.findByPk(req.params.id);
+    if (!product) {
+      return res.status(404).json({ message: "Termék nem található!" });
+    }
+    await product.update(req.body);
+    res.json({ message: "Termék sikeresen frissítve!", product });
+  } catch (err) {
+    res.status(500).json({ message: "Szerver hiba!", error: err.message });
+  }
+};
+
 module.exports = {
   getAllProducts,
   getProductById,
   createProduct,
   createOrder,
   getMyOrders,
+  deleteProduct,
+  updateOrderStatus,
+  getAllOrders,
+  updateProduct,
 };

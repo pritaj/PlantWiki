@@ -9,7 +9,7 @@ async function start() {
     await sequelize.authenticate();
     console.log("Adatbázis kapcsolat OK");
 
-    await sequelize.sync({ alter: true });
+    await sequelize.sync({ force: false });
     console.log("Modellek szinkronizálva");
 
     app.listen(PORT, () => {

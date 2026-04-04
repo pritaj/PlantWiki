@@ -41,10 +41,10 @@ const createArticle = async (req, res) => {
     });
     res.status(201).json({ message: "Cikk sikeresen létrehozva!", article });
   } catch (err) {
+    console.error("Wiki create error:", err);
     res.status(500).json({ message: "Szerver hiba!", error: err.message });
   }
 };
-
 // Cikk szerkesztése (csak admin)
 const updateArticle = async (req, res) => {
   try {
@@ -101,6 +101,20 @@ const createDisease = async (req, res) => {
   }
 };
 
+// Cikk törlése
+const deleteArticle = async (req, res) => {
+  try {
+    const article = await WikiArticle.findByPk(req.params.id);
+    if (!article) {
+      return res.status(404).json({ message: "Cikk nem található!" });
+    }
+    await article.destroy();
+    res.json({ message: "Cikk sikeresen törölve!" });
+  } catch (err) {
+    res.status(500).json({ message: "Szerver hiba!", error: err.message });
+  }
+};
+
 module.exports = {
   getAllArticles,
   getArticleBySlug,
@@ -109,4 +123,5 @@ module.exports = {
   getAllDiseases,
   getDiseaseById,
   createDisease,
+  deleteArticle,
 };

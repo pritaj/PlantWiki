@@ -238,9 +238,360 @@ async function calculate() {
   }
 }
 
-// Oldalbetöltéskor
+// Admin - Növények betöltése táblázatba
+async function loadAdminPlants() {
+  const tbody = document.getElementById("plants-tbody");
+  if (!tbody) return;
+
+  const res = await fetch("/api/plants");
+  const plants = await res.json();
+
+  tbody.innerHTML = plants
+    .map(
+      (plant) => `
+    <tr>
+      <td>${plant.id}</td>
+      <td>${plant.name}</td>
+      <td><i>${plant.latin_name || "-"}</i></td>
+      <td>${plant.type}</td>
+      <td>${plant.difficulty}</td>
+      <td>
+        <button class="btn btn-sm btn-warning me-1" onclick="openEditPlant(${plant.id}, '${plant.name}', '${plant.latin_name || ""}', '${plant.description || ""}', '${plant.type}', '${plant.difficulty}', '${plant.watering_frequency || ""}', '${plant.sunlight}')">Szerkesztés</button>
+        <button class="btn btn-sm btn-danger" onclick="deletePlant(${plant.id})">Törlés</button>
+      </td>
+    </tr>
+  `,
+    )
+    .join("");
+}
+
+async function addPlant() {
+  const token = getToken();
+  const res = await fetch("/api/plants", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({
+      name: document.getElementById("add-name").value,
+      latin_name: document.getElementById("add-latin").value,
+      description: document.getElementById("add-description").value,
+      type: document.getElementById("add-type").value,
+      difficulty: document.getElementById("add-difficulty").value,
+      watering_frequency: document.getElementById("add-watering").value,
+      sunlight: document.getElementById("add-sunlight").value,
+    }),
+  });
+  const data = await res.json();
+
+  if (res.ok) {
+    bootstrap.Modal.getInstance(
+      document.getElementById("addPlantModal"),
+    ).hide();
+    loadAdminPlants();
+  } else {
+    const err = document.getElementById("add-error");
+    err.style.display = "block";
+    err.textContent = data.message;
+  }
+}
+
+async function deletePlant(id) {
+  if (!confirm("Biztosan törlöd ezt a növényt?")) return;
+  const token = getToken();
+  const res = await fetch(`/api/plants/${id}`, {
+    method: "DELETE",
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (res.ok) await loadAdminPlants();
+}
+
+// Admin - Termékek betöltése táblázatba
+async function loadAdminProducts() {
+  const tbody = document.getElementById("products-tbody");
+  if (!tbody) return;
+
+  const res = await fetch("/api/shop/products");
+  const products = await res.json();
+
+  tbody.innerHTML = products
+    .map(
+      (product) => `
+    <tr>
+      <td>${product.id}</td>
+      <td>${product.name}</td>
+      <td>${product.category}</td>
+      <td>${product.price} Ft</td>
+      <td>${product.stock}</td>
+      <td>
+        <button class="btn btn-sm btn-warning me-1" onclick="openEditProduct(${product.id}, '${product.name}', '${product.description || ""}', ${product.price}, ${product.stock}, '${product.category}')">Szerkesztés</button>
+        <button class="btn btn-sm btn-danger" onclick="deleteProduct(${product.id})">Törlés</button>
+      </td>
+    </tr>
+  `,
+    )
+    .join("");
+}
+
+async function addProduct() {
+  const token = getToken();
+  const res = await fetch("/api/shop/products", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({
+      name: document.getElementById("add-product-name").value,
+      description: document.getElementById("add-product-description").value,
+      price: document.getElementById("add-product-price").value,
+      stock: document.getElementById("add-product-stock").value,
+      category: document.getElementById("add-product-category").value,
+    }),
+  });
+  const data = await res.json();
+
+  if (res.ok) {
+    bootstrap.Modal.getInstance(
+      document.getElementById("addProductModal"),
+    ).hide();
+    loadAdminProducts();
+  } else {
+    const err = document.getElementById("add-product-error");
+    err.style.display = "block";
+    err.textContent = data.message;
+  }
+}
+
+async function deleteProduct(id) {
+  if (!confirm("Biztosan törlöd ezt a terméket?")) return;
+  const token = getToken();
+  const res = await fetch(`/api/shop/products/${id}`, {
+    method: "DELETE",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+  });
+  if (res.ok) {
+    await loadAdminProducts();
+  } else {
+    const data = await res.json();
+    alert(data.message);
+  }
+}
+
+// Admin - Wiki cikkek betöltése
+async function loadAdminWiki() {
+  const tbody = document.getElementById("wiki-tbody");
+  if (!tbody) return;
+
+  const res = await fetch("/api/wiki");
+  const articles = await res.json();
+
+  tbody.innerHTML = articles
+    .map(
+      (article) => `
+    <tr>
+      <td>${article.id}</td>
+      <td>${article.title}</td>
+      <td>${article.category}</td>
+      <td>${article.Plant ? article.Plant.name : "-"}</td>
+      <td>
+        <button class="btn btn-sm btn-danger" onclick="deleteArticle(${article.id})">Törlés</button>
+      </td>
+    </tr>
+  `,
+    )
+    .join("");
+}
+
+async function addArticle() {
+  const token = getToken();
+  const plantId = document.getElementById("add-article-plantid").value;
+  const res = await fetch("/api/wiki", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({
+      title: document.getElementById("add-article-title").value,
+      slug: document.getElementById("add-article-slug").value,
+      content: document.getElementById("add-article-content").value,
+      category: document.getElementById("add-article-category").value,
+      plantId: plantId ? parseInt(plantId) : null,
+    }),
+  });
+  const data = await res.json();
+
+  if (res.ok) {
+    document.getElementById("add-article-error").style.display = "none";
+    const modal = bootstrap.Modal.getInstance(
+      document.getElementById("addArticleModal"),
+    );
+    if (modal) modal.hide();
+    loadAdminWiki();
+  } else {
+    const err = document.getElementById("add-article-error");
+    err.style.display = "block";
+    err.textContent = data.message;
+  }
+}
+
+async function deleteArticle(id) {
+  if (!confirm("Biztosan törlöd ezt a cikket?")) return;
+  const token = getToken();
+  const res = await fetch(`/api/wiki/${id}`, {
+    method: "DELETE",
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (res.ok) await loadAdminWiki();
+}
+// Admin - Rendelések betöltése
+async function loadAdminOrders() {
+  const tbody = document.getElementById("orders-tbody");
+  if (!tbody) return;
+
+  const token = getToken();
+  const res = await fetch("/api/shop/orders", {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  const orders = await res.json();
+
+  tbody.innerHTML = orders
+    .map(
+      (order) => `
+    <tr>
+      <td>${order.id}</td>
+      <td>${order.userId}</td>
+      <td><span class="badge bg-warning text-dark">${order.status}</span></td>
+      <td>${order.total_price} Ft</td>
+      <td>${order.shipping_address}</td>
+      <td>${new Date(order.createdAt).toLocaleDateString("hu-HU")}</td>
+      <td>
+        <select class="form-select form-select-sm" onchange="updateOrderStatus(${order.id}, this.value)">
+          <option ${order.status === "függőben" ? "selected" : ""}>függőben</option>
+          <option ${order.status === "feldolgozás alatt" ? "selected" : ""}>feldolgozás alatt</option>
+          <option ${order.status === "teljesítve" ? "selected" : ""}>teljesítve</option>
+          <option ${order.status === "törölve" ? "selected" : ""}>törölve</option>
+        </select>
+      </td>
+    </tr>
+  `,
+    )
+    .join("");
+}
+
+async function updateOrderStatus(id, status) {
+  const token = getToken();
+  await fetch(`/api/shop/orders/${id}`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ status }),
+  });
+}
+function openEditPlant(
+  id,
+  name,
+  latin_name,
+  description,
+  type,
+  difficulty,
+  watering_frequency,
+  sunlight,
+) {
+  document.getElementById("edit-plant-id").value = id;
+  document.getElementById("edit-name").value = name;
+  document.getElementById("edit-latin").value = latin_name;
+  document.getElementById("edit-description").value = description;
+  document.getElementById("edit-type").value = type;
+  document.getElementById("edit-difficulty").value = difficulty;
+  document.getElementById("edit-watering").value = watering_frequency;
+  document.getElementById("edit-sunlight").value = sunlight;
+  new bootstrap.Modal(document.getElementById("editPlantModal")).show();
+}
+
+async function editPlant() {
+  const token = getToken();
+  const id = document.getElementById("edit-plant-id").value;
+  const res = await fetch(`/api/plants/${id}`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({
+      name: document.getElementById("edit-name").value,
+      latin_name: document.getElementById("edit-latin").value,
+      description: document.getElementById("edit-description").value,
+      type: document.getElementById("edit-type").value,
+      difficulty: document.getElementById("edit-difficulty").value,
+      watering_frequency: document.getElementById("edit-watering").value,
+      sunlight: document.getElementById("edit-sunlight").value,
+    }),
+  });
+
+  if (res.ok) {
+    bootstrap.Modal.getInstance(
+      document.getElementById("editPlantModal"),
+    ).hide();
+    loadAdminPlants();
+  } else {
+    const data = await res.json();
+    alert(data.message);
+  }
+}
+
+function openEditProduct(id, name, description, price, stock, category) {
+  document.getElementById("edit-product-id").value = id;
+  document.getElementById("edit-product-name").value = name;
+  document.getElementById("edit-product-description").value = description;
+  document.getElementById("edit-product-price").value = price;
+  document.getElementById("edit-product-stock").value = stock;
+  document.getElementById("edit-product-category").value = category;
+  new bootstrap.Modal(document.getElementById("editProductModal")).show();
+}
+
+async function editProduct() {
+  const token = getToken();
+  const id = document.getElementById("edit-product-id").value;
+  const res = await fetch(`/api/shop/products/${id}`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({
+      name: document.getElementById("edit-product-name").value,
+      description: document.getElementById("edit-product-description").value,
+      price: document.getElementById("edit-product-price").value,
+      stock: document.getElementById("edit-product-stock").value,
+      category: document.getElementById("edit-product-category").value,
+    }),
+  });
+
+  if (res.ok) {
+    bootstrap.Modal.getInstance(
+      document.getElementById("editProductModal"),
+    ).hide();
+    loadAdminProducts();
+  } else {
+    const data = await res.json();
+    alert(data.message);
+  }
+}
+// Oldalbetöltéskor admin funkciók
 document.addEventListener("DOMContentLoaded", () => {
   loadPlants();
   loadProducts();
   loadWiki();
+  loadAdminPlants();
+  loadAdminProducts();
+  loadAdminWiki();
+  loadAdminOrders();
 });
