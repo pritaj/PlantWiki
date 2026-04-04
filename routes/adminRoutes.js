@@ -1,6 +1,27 @@
 const express = require("express");
 const router = express.Router();
 
+// Admin védelem middleware
+function adminGuard(req, res, next) {
+  const token =
+    req.cookies?.token || req.headers["authorization"]?.split(" ")[1];
+
+  if (!token) {
+    return res.redirect("/auth/login");
+  }
+
+  try {
+    const jwt = require("jsonwebtoken");
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    if (decoded.role !== "admin") {
+      return res.redirect("/");
+    }
+    next();
+  } catch (err) {
+    return res.redirect("/auth/login");
+  }
+}
+
 router.get("/", (req, res) => {
   res.render("admin/index");
 });

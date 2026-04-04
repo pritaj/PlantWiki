@@ -810,10 +810,33 @@ async function loadProfile() {
     window.location.href = "/auth/login";
   }
 }
+
+// Admin oldal védelem
+function adminGuard() {
+  const token = getToken();
+  if (!token) {
+    window.location.href = "/auth/login";
+    return;
+  }
+  try {
+    const payload = JSON.parse(atob(token.split(".")[1]));
+    if (payload.role !== "admin") {
+      window.location.href = "/";
+    }
+  } catch (e) {
+    window.location.href = "/auth/login";
+  }
+}
 // Oldalbetöltéskor admin funkciók
 document.addEventListener("DOMContentLoaded", () => {
   updateNavbar();
   loadProfile();
+
+  // Admin védelem
+  if (window.location.pathname.startsWith("/admin")) {
+    adminGuard();
+  }
+
   loadPlants();
   loadProducts();
   loadWiki();
