@@ -157,9 +157,20 @@ const updateProduct = async (req, res) => {
     if (!product) {
       return res.status(404).json({ message: "Termék nem található!" });
     }
-    await product.update(req.body);
+    const updateData = {
+      name: req.body.name,
+      description: req.body.description,
+      price: req.body.price,
+      stock: req.body.stock,
+      category: req.body.category,
+    };
+    if (req.file) {
+      updateData.image = req.file.filename;
+    }
+    await product.update(updateData);
     res.json({ message: "Termék sikeresen frissítve!", product });
   } catch (err) {
+    console.error("Update error:", err);
     res.status(500).json({ message: "Szerver hiba!", error: err.message });
   }
 };

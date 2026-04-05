@@ -20,6 +20,11 @@ const WikiArticle = sequelize.define("WikiArticle", {
     type: DataTypes.TEXT,
     allowNull: false,
   },
+
+  image: {
+    type: DataTypes.STRING,
+  },
+
   category: {
     type: DataTypes.ENUM(
       "öntözés",

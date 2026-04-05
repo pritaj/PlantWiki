@@ -12,6 +12,7 @@ const {
 } = require("../controllers/wikiController");
 const authMiddleware = require("../middleware/authMiddleware");
 const adminMiddleware = require("../middleware/adminMiddleware");
+const upload = require("../middleware/uploadMiddleware");
 
 // Publikus végpontok
 router.get("/", getAllArticles);
@@ -20,8 +21,8 @@ router.get("/diseases/:id", getDiseaseById);
 router.get("/:slug", getArticleBySlug);
 
 // Védett végpontok (csak admin)
-router.post("/", adminMiddleware, createArticle);
-router.put("/:id", adminMiddleware, updateArticle);
+router.post("/", adminMiddleware, upload.single("image"), createArticle);
+router.put("/:id", adminMiddleware, upload.single("image"), updateArticle);
 router.delete("/:id", adminMiddleware, deleteArticle);
 router.post("/diseases", adminMiddleware, createDisease);
 

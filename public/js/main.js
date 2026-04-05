@@ -221,16 +221,17 @@ async function loadWiki() {
   container.innerHTML = articles
     .map(
       (article) => `
-    <div class="col-md-4 wiki-card" data-category="${article.category}">
-      <div class="card h-100">
-        <div class="card-body">
-          <h5 class="card-title text-success">${article.title}</h5>
-          <span class="badge bg-success mb-2">${article.category}</span>
-          <p class="card-text">${article.content.substring(0, 100)}...</p>
-        </div>
+  <div class="col-md-4 wiki-card" data-category="${article.category}">
+    <div class="card h-100">
+      ${article.image ? `<img src="/uploads/${article.image}" class="card-img-top" style="height: 200px; object-fit: cover;">` : '<div class="bg-light d-flex align-items-center justify-content-center" style="height: 200px;">📖</div>'}
+      <div class="card-body">
+        <h5 class="card-title text-success">${article.title}</h5>
+        <span class="badge bg-success mb-2">${article.category}</span>
+        <p class="card-text">${article.content.substring(0, 100)}...</p>
       </div>
     </div>
-  `,
+  </div>
+`,
     )
     .join("");
 
@@ -532,20 +533,26 @@ async function addArticle() {
 
   const token = getToken();
   const plantId = document.getElementById("add-article-plantid").value;
+  const formData = new FormData();
+  formData.append("title", document.getElementById("add-article-title").value);
+  formData.append("slug", document.getElementById("add-article-slug").value);
+  formData.append(
+    "content",
+    document.getElementById("add-article-content").value,
+  );
+  formData.append(
+    "category",
+    document.getElementById("add-article-category").value,
+  );
+  if (plantId) formData.append("plantId", plantId);
+  const imageFile = document.getElementById("add-article-image").files[0];
+  if (imageFile) formData.append("image", imageFile);
+
   try {
     const res = await fetch("/api/wiki", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({
-        title: document.getElementById("add-article-title").value,
-        slug: document.getElementById("add-article-slug").value,
-        content: document.getElementById("add-article-content").value,
-        category: document.getElementById("add-article-category").value,
-        plantId: plantId ? parseInt(plantId) : null,
-      }),
+      headers: { Authorization: `Bearer ${token}` },
+      body: formData,
     });
     const data = await res.json();
 
@@ -792,20 +799,25 @@ async function editArticle() {
   const token = getToken();
   const id = document.getElementById("edit-article-id").value;
   const plantId = document.getElementById("edit-article-plantid").value;
+  const formData = new FormData();
+  formData.append("title", document.getElementById("edit-article-title").value);
+  formData.append("slug", document.getElementById("edit-article-slug").value);
+  formData.append(
+    "content",
+    document.getElementById("edit-article-content").value,
+  );
+  formData.append(
+    "category",
+    document.getElementById("edit-article-category").value,
+  );
+  if (plantId) formData.append("plantId", plantId);
+  const imageFile = document.getElementById("edit-article-image").files[0];
+  if (imageFile) formData.append("image", imageFile);
 
   const res = await fetch(`/api/wiki/${id}`, {
     method: "PUT",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    },
-    body: JSON.stringify({
-      title: document.getElementById("edit-article-title").value,
-      slug: document.getElementById("edit-article-slug").value,
-      content: document.getElementById("edit-article-content").value,
-      category: document.getElementById("edit-article-category").value,
-      plantId: plantId ? parseInt(plantId) : null,
-    }),
+    headers: { Authorization: `Bearer ${token}` },
+    body: formData,
   });
 
   if (res.ok) {

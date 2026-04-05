@@ -6,8 +6,10 @@ const getAllArticles = async (req, res) => {
     const articles = await WikiArticle.findAll({
       include: [{ model: Plant, attributes: ["id", "name"] }],
     });
+    console.log("Articles:", articles.length);
     res.json(articles);
   } catch (err) {
+    console.error("Wiki getAll error:", err.message);
     res.status(500).json({ message: "Szerver hiba!", error: err.message });
   }
 };
@@ -38,6 +40,7 @@ const createArticle = async (req, res) => {
       content,
       category,
       plantId: plantId || null,
+      image: req.file ? req.file.filename : null,
     });
     res.status(201).json({ message: "Cikk sikeresen létrehozva!", article });
   } catch (err) {
@@ -52,7 +55,17 @@ const updateArticle = async (req, res) => {
     if (!article) {
       return res.status(404).json({ message: "Cikk nem található!" });
     }
-    await article.update(req.body);
+    const updateData = {
+      title: req.body.title,
+      slug: req.body.slug,
+      content: req.body.content,
+      category: req.body.category,
+      plantId: req.body.plantId || null,
+    };
+    if (req.file) {
+      updateData.image = req.file.filename;
+    }
+    await article.update(updateData);
     res.json({ message: "Cikk sikeresen frissítve!", article });
   } catch (err) {
     res.status(500).json({ message: "Szerver hiba!", error: err.message });
