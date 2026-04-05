@@ -184,7 +184,7 @@ async function loadProducts() {
       </div>
       <div class="card-footer d-flex justify-content-between align-items-center">
         <strong class="text-success">${product.price} Ft</strong>
-        <span class="text-muted">Készlet: ${product.stock}</span>
+        <button class="btn btn-success btn-sm" onclick="addToCart(${product.id}, '${product.name}', ${product.price})">🛒 Kosárba</button>
       </div>
     </div>
   </div>
@@ -204,7 +204,149 @@ function filterProducts() {
       !category || card.dataset.category === category ? "block" : "none";
   });
 }
+// Kosár kezelés
+function getCart() {
+  return JSON.parse(localStorage.getItem("cart") || "[]");
+}
 
+function saveCart(cart) {
+  localStorage.setItem("cart", JSON.stringify(cart));
+  updateCartBadge();
+}
+
+function addToCart(id, name, price) {
+  const cart = getCart();
+  const existing = cart.find((item) => item.id === id);
+  if (existing) {
+    existing.quantity += 1;
+  } else {
+    cart.push({ id, name, price, quantity: 1 });
+  }
+  saveCart(cart);
+  showCartToast(name);
+}
+
+function removeFromCart(id) {
+  const cart = getCart().filter((item) => item.id !== id);
+  saveCart(cart);
+  renderCart();
+}
+
+function updateQuantity(id, quantity) {
+  const cart = getCart();
+  const item = cart.find((item) => item.id === id);
+  if (item) {
+    item.quantity = parseInt(quantity);
+    if (item.quantity <= 0) {
+      removeFromCart(id);
+      return;
+    }
+  }
+  saveCart(cart);
+  renderCart();
+}
+
+function updateCartBadge() {
+  const cart = getCart();
+  const total = cart.reduce((sum, item) => sum + item.quantity, 0);
+  const badge = document.getElementById("cart-badge");
+  if (badge) {
+    badge.textContent = total;
+    badge.style.display = total > 0 ? "inline" : "none";
+  }
+}
+
+function showCartToast(name) {
+  const toast = document.getElementById("cart-toast");
+  const toastMsg = document.getElementById("cart-toast-msg");
+  if (toast && toastMsg) {
+    toastMsg.textContent = `"${name}" hozzáadva a kosárhoz!`;
+    const bsToast = new bootstrap.Toast(toast);
+    bsToast.show();
+  }
+}
+
+function renderCart() {
+  const cart = getCart();
+  const container = document.getElementById("cart-items");
+  const totalEl = document.getElementById("cart-total");
+  if (!container) return;
+
+  if (cart.length === 0) {
+    container.innerHTML = '<p class="text-muted text-center">A kosár üres.</p>';
+    if (totalEl) totalEl.textContent = "0";
+    return;
+  }
+
+  container.innerHTML = cart
+    .map(
+      (item) => `
+    <div class="d-flex justify-content-between align-items-center mb-3 border-bottom pb-2">
+      <div>
+        <strong>${item.name}</strong><br>
+        <small class="text-muted">${item.price} Ft / db</small>
+      </div>
+      <div class="d-flex align-items-center gap-2">
+        <input type="number" min="1" value="${item.quantity}" 
+          class="form-control form-control-sm" style="width: 70px;"
+          onchange="updateQuantity(${item.id}, this.value)">
+        <span class="text-success fw-bold">${(item.price * item.quantity).toLocaleString()} Ft</span>
+        <button class="btn btn-sm btn-danger" onclick="removeFromCart(${item.id})">×</button>
+      </div>
+    </div>
+  `,
+    )
+    .join("");
+
+  const total = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  if (totalEl) totalEl.textContent = total.toLocaleString();
+}
+
+async function checkout() {
+  const token = getToken();
+  if (!token) {
+    window.location.href = "/auth/login";
+    return;
+  }
+
+  const cart = getCart();
+  if (cart.length === 0) {
+    alert("A kosár üres!");
+    return;
+  }
+
+  const address = document.getElementById("shipping-address").value;
+  if (!address.trim()) {
+    alert("Add meg a szállítási címet!");
+    document.getElementById("shipping-address").focus();
+    return;
+  }
+
+  const res = await fetch("/api/shop/checkout", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({
+      shipping_address: address,
+      items: cart.map((item) => ({
+        productId: item.id,
+        quantity: item.quantity,
+      })),
+    }),
+  });
+
+  const data = await res.json();
+  if (res.ok) {
+    saveCart([]);
+    renderCart();
+    alert(`Rendelés sikeresen leadva! Rendelés azonosító: #${data.orderId}`);
+    bootstrap.Modal.getInstance(document.getElementById("cartModal")).hide();
+  } else {
+    alert(data.message);
+  }
+}
 // Wiki cikkek betöltése
 async function loadWiki() {
   const container = document.getElementById("wiki-container");
@@ -878,11 +1020,21 @@ function adminGuard() {
 // Oldalbetöltéskor admin funkciók
 document.addEventListener("DOMContentLoaded", () => {
   updateNavbar();
+  updateCartBadge();
   loadProfile();
+  renderCart();
 
   // Admin védelem
   if (window.location.pathname.startsWith("/admin")) {
     adminGuard();
+  }
+
+  // Kosár modal megnyitáskor frissítés
+  const cartModal = document.getElementById("cartModal");
+  if (cartModal) {
+    cartModal.addEventListener("show.bs.modal", () => {
+      renderCart();
+    });
   }
 
   loadPlants();
