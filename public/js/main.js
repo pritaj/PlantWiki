@@ -1378,9 +1378,33 @@ async function loadProductDetail() {
 
   loadReviews("products", id, "product-reviews");
 }
+// Sötét mód
+function toggleDarkMode() {
+  const body = document.body;
+  const btn = document.getElementById("dark-mode-btn");
+  body.classList.toggle("dark-mode");
+
+  if (body.classList.contains("dark-mode")) {
+    localStorage.setItem("darkMode", "enabled");
+    if (btn) btn.textContent = "☀️";
+  } else {
+    localStorage.setItem("darkMode", "disabled");
+    if (btn) btn.textContent = "🌙";
+  }
+}
+
+function loadDarkMode() {
+  const darkMode = localStorage.getItem("darkMode");
+  const btn = document.getElementById("dark-mode-btn");
+  if (darkMode === "enabled") {
+    document.body.classList.add("dark-mode");
+    if (btn) btn.textContent = "☀️";
+  }
+}
 
 // Oldalbetöltéskor admin funkciók
 document.addEventListener("DOMContentLoaded", () => {
+  loadDarkMode();
   updateNavbar();
   updateCartBadge();
   loadProfile();
