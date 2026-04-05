@@ -1061,6 +1061,63 @@ function renderStars(rating) {
   return stars;
 }
 
+async function deleteReview(reviewId, type, id, containerId) {
+  if (!confirm("Biztosan törlöd az értékelést?")) return;
+  const token = getToken();
+  const res = await fetch(`/api/reviews/${reviewId}`, {
+    method: "DELETE",
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (res.ok) {
+    loadReviews(type, id, containerId);
+  } else {
+    const data = await res.json();
+    alert(data.message);
+  }
+}
+
+function openEditReview(reviewId, rating, comment, type, id, containerId) {
+  const reviewEl = document.getElementById(`review-${reviewId}`);
+  reviewEl.innerHTML = `
+    <div class="mb-2">
+      <select id="edit-rating-${reviewId}" class="form-select form-select-sm mb-2">
+        <option value="5" ${rating == 5 ? "selected" : ""}>⭐⭐⭐⭐⭐</option>
+        <option value="4" ${rating == 4 ? "selected" : ""}>⭐⭐⭐⭐</option>
+        <option value="3" ${rating == 3 ? "selected" : ""}>⭐⭐⭐</option>
+        <option value="2" ${rating == 2 ? "selected" : ""}>⭐⭐</option>
+        <option value="1" ${rating == 1 ? "selected" : ""}>⭐</option>
+      </select>
+      <textarea id="edit-comment-${reviewId}" class="form-control form-control-sm mb-2" rows="2">${comment}</textarea>
+      <div class="d-flex gap-2">
+        <button class="btn btn-sm btn-success" onclick="saveEditReview(${reviewId}, '${type}', ${id}, '${containerId}')">Mentés</button>
+        <button class="btn btn-sm btn-secondary" onclick="loadReviews('${type}', ${id}, '${containerId}')">Mégse</button>
+      </div>
+    </div>
+  `;
+}
+
+async function saveEditReview(reviewId, type, id, containerId) {
+  const token = getToken();
+  const rating = document.getElementById(`edit-rating-${reviewId}`).value;
+  const comment = document.getElementById(`edit-comment-${reviewId}`).value;
+
+  const res = await fetch(`/api/reviews/${reviewId}`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ rating: parseInt(rating), comment }),
+  });
+
+  if (res.ok) {
+    loadReviews(type, id, containerId);
+  } else {
+    const data = await res.json();
+    alert(data.message);
+  }
+}
+
 // Értékelések betöltése
 async function loadReviews(type, id, containerId) {
   const container = document.getElementById(containerId);
@@ -1075,15 +1132,35 @@ async function loadReviews(type, id, containerId) {
     return;
   }
 
+  const token = getToken();
+  let currentUserId = null;
+  if (token) {
+    try {
+      const payload = JSON.parse(atob(token.split(".")[1]));
+      currentUserId = payload.id;
+    } catch (e) {}
+  }
+
   container.innerHTML = reviews
     .map(
       (review) => `
-    <div class="border-bottom pb-2 mb-2">
-      <div class="d-flex justify-content-between">
+    <div class="border-bottom pb-2 mb-2" id="review-${review.id}">
+      <div class="d-flex justify-content-between align-items-center">
         <strong class="small">${review.User.username}</strong>
-        <span>${renderStars(review.rating)}</span>
+        <div class="d-flex align-items-center gap-2">
+          <span id="stars-${review.id}">${renderStars(review.rating)}</span>
+          ${
+            currentUserId === review.userId
+              ? `
+            <button class="btn btn-sm btn-outline-warning" onclick="openEditReview(${review.id}, ${review.rating}, '${review.comment || ""}', '${type}', ${id}, '${containerId}')">✏️</button>
+            <button class="btn btn-sm btn-outline-danger" onclick="deleteReview(${review.id}, '${type}', ${id}, '${containerId}')">×</button>
+          `
+              : ""
+          }
+        </div>
       </div>
-      ${review.comment ? `<p class="small mb-0">${review.comment}</p>` : ""}
+      <p class="small mb-0" id="comment-text-${review.id}">${review.comment || ""}</p>
+      <small class="text-muted">${new Date(review.createdAt).toLocaleDateString("hu-HU")}</small>
     </div>
   `,
     )
@@ -1117,10 +1194,156 @@ async function submitReview(type, id) {
   const data = await res.json();
   if (res.ok) {
     document.getElementById(`comment-${type}-${id}`).value = "";
-    loadReviews(type, id, `reviews-${type}-${id}`);
+    // Értékelések újratöltése
+    const containerId = window.location.pathname.includes("/plants/")
+      ? "plant-reviews"
+      : window.location.pathname.includes("/shop/")
+        ? "product-reviews"
+        : `reviews-${type}-${id}`;
+    loadReviews(type, id, containerId);
   } else {
     alert(data.message);
   }
+}
+
+// Növény részletes oldal
+async function loadPlantDetail() {
+  const container = document.getElementById("plant-detail");
+  if (!container) return;
+
+  const id = window.location.pathname.split("/").pop();
+
+  const res = await fetch(`/api/plants/${id}`);
+  if (!res.ok) {
+    container.innerHTML = '<p class="text-danger">Növény nem található!</p>';
+    return;
+  }
+  const plant = await res.json();
+  const { avg, count } = await getAverageRating("plants", id);
+
+  container.innerHTML = `
+    <div class="row">
+      <div class="col-md-5">
+        ${plant.image ? `<img src="/uploads/${plant.image}" class="img-fluid rounded" style="max-height: 400px; object-fit: cover; width: 100%;">` : '<div class="bg-light d-flex align-items-center justify-content-center rounded" style="height: 400px;">🌱</div>'}
+      </div>
+      <div class="col-md-7">
+        <h2 class="text-success">${plant.name}</h2>
+        <p class="text-muted fst-italic">${plant.latin_name || ""}</p>
+        <div class="mb-2">${renderStarAvg(avg, count)}</div>
+        <p>${plant.description || ""}</p>
+        <table class="table table-bordered">
+          <tr><td><strong>Típus</strong></td><td>${plant.type}</td></tr>
+          <tr><td><strong>Nehézség</strong></td><td>${plant.difficulty}</td></tr>
+          <tr><td><strong>Öntözés</strong></td><td>💧 ${plant.watering_frequency || "N/A"}</td></tr>
+          <tr><td><strong>Fényigény</strong></td><td>☀️ ${plant.sunlight || "N/A"}</td></tr>
+        </table>
+      </div>
+    </div>
+
+    <div class="row mt-4">
+      <div class="col-md-6">
+        <h4 class="text-success">📖 Kapcsolódó wiki cikkek</h4>
+        <div id="plant-wiki"></div>
+      </div>
+      <div class="col-md-6">
+        <h4 class="text-success">⭐ Értékelések</h4>
+        <div id="plant-reviews"></div>
+        <div class="card p-3 mt-3">
+          <h6>Értékelés hozzáadása</h6>
+          <select id="rating-plants-${plant.id}" class="form-select mb-2">
+            <option value="5">⭐⭐⭐⭐⭐</option>
+            <option value="4">⭐⭐⭐⭐</option>
+            <option value="3">⭐⭐⭐</option>
+            <option value="2">⭐⭐</option>
+            <option value="1">⭐</option>
+          </select>
+          <textarea id="comment-plants-${plant.id}" class="form-control mb-2" rows="3" placeholder="Vélemény (opcionális)"></textarea>
+          <button class="btn btn-success" onclick="submitReview('plants', ${plant.id})">Értékelés küldése</button>
+        </div>
+      </div>
+    </div>
+  `;
+
+  // Wiki cikkek betöltése
+  const wikiRes = await fetch("/api/wiki");
+  const articles = await wikiRes.json();
+  const plantArticles = articles.filter((a) => a.plantId === plant.id);
+  const wikiContainer = document.getElementById("plant-wiki");
+  if (plantArticles.length === 0) {
+    wikiContainer.innerHTML =
+      '<p class="text-muted">Nincs kapcsolódó wiki cikk.</p>';
+  } else {
+    wikiContainer.innerHTML = plantArticles
+      .map(
+        (a) => `
+      <div class="card p-3 mb-2">
+        <h6 class="text-success">${a.title}</h6>
+        <span class="badge bg-success mb-1">${a.category}</span>
+        <p class="small">${a.content}</p>
+      </div>
+    `,
+      )
+      .join("");
+  }
+
+  // Értékelések betöltése
+  loadReviews("plants", id, "plant-reviews");
+}
+
+// Termék részletes oldal
+async function loadProductDetail() {
+  const container = document.getElementById("product-detail");
+  if (!container) return;
+
+  const id = window.location.pathname.split("/").pop();
+
+  const res = await fetch(`/api/shop/products/${id}`);
+  if (!res.ok) {
+    container.innerHTML = '<p class="text-danger">Termék nem található!</p>';
+    return;
+  }
+  const product = await res.json();
+  const { avg, count } = await getAverageRating("products", id);
+
+  container.innerHTML = `
+    <div class="row">
+      <div class="col-md-5">
+        ${product.image ? `<img src="/uploads/${product.image}" class="img-fluid rounded" style="max-height: 400px; object-fit: cover; width: 100%;">` : '<div class="bg-light d-flex align-items-center justify-content-center rounded" style="height: 400px;">🛒</div>'}
+      </div>
+      <div class="col-md-7">
+        <h2 class="text-success">${product.name}</h2>
+        <div class="mb-2">${renderStarAvg(avg, count)}</div>
+        <p>${product.description || ""}</p>
+        <table class="table table-bordered">
+          <tr><td><strong>Kategória</strong></td><td>${product.category}</td></tr>
+          <tr><td><strong>Ár</strong></td><td>${product.price} Ft</td></tr>
+          <tr><td><strong>Készlet</strong></td><td>${product.stock} db</td></tr>
+        </table>
+        <button class="btn btn-success btn-lg w-100" onclick="addToCart(${product.id}, '${product.name}', ${product.price})">🛒 Kosárba</button>
+      </div>
+    </div>
+
+    <div class="row mt-4">
+      <div class="col-12">
+        <h4 class="text-success">⭐ Értékelések</h4>
+        <div id="product-reviews"></div>
+        <div class="card p-3 mt-3">
+          <h6>Értékelés hozzáadása</h6>
+          <select id="rating-products-${product.id}" class="form-select mb-2">
+            <option value="5">⭐⭐⭐⭐⭐</option>
+            <option value="4">⭐⭐⭐⭐</option>
+            <option value="3">⭐⭐⭐</option>
+            <option value="2">⭐⭐</option>
+            <option value="1">⭐</option>
+          </select>
+          <textarea id="comment-products-${product.id}" class="form-control mb-2" rows="3" placeholder="Vélemény (opcionális)"></textarea>
+          <button class="btn btn-success" onclick="submitReview('products', ${product.id})">Értékelés küldése</button>
+        </div>
+      </div>
+    </div>
+  `;
+
+  loadReviews("products", id, "product-reviews");
 }
 
 // Oldalbetöltéskor admin funkciók
@@ -1128,14 +1351,14 @@ document.addEventListener("DOMContentLoaded", () => {
   updateNavbar();
   updateCartBadge();
   loadProfile();
+  loadPlantDetail();
+  loadProductDetail();
   renderCart();
 
-  // Admin védelem
   if (window.location.pathname.startsWith("/admin")) {
     adminGuard();
   }
 
-  // Kosár modal megnyitáskor frissítés
   const cartModal = document.getElementById("cartModal");
   if (cartModal) {
     cartModal.addEventListener("show.bs.modal", () => {

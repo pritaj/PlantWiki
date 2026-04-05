@@ -14,6 +14,25 @@ const getPlantReviews = async (req, res) => {
   }
 };
 
+const updateReview = async (req, res) => {
+  try {
+    const review = await Review.findByPk(req.params.id);
+    if (!review) {
+      return res.status(404).json({ message: "Értékelés nem található!" });
+    }
+    if (review.userId !== req.user.id && req.user.role !== "admin") {
+      return res.status(403).json({ message: "Nincs jogosultságod!" });
+    }
+    await review.update({
+      rating: req.body.rating,
+      comment: req.body.comment,
+    });
+    res.json({ message: "Értékelés frissítve!", review });
+  } catch (err) {
+    res.status(500).json({ message: "Szerver hiba!", error: err.message });
+  }
+};
+
 // Értékelések lekérése termékhez
 const getProductReviews = async (req, res) => {
   try {
@@ -87,4 +106,5 @@ module.exports = {
   getProductReviews,
   createReview,
   deleteReview,
+  updateReview,
 };

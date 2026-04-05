@@ -17,6 +17,10 @@ router.get("/wiki", (req, res) => {
   res.render("wiki/index");
 });
 
+router.get("/shop/:id", (req, res) => {
+  res.render("shop/detail");
+});
+
 router.get("/nutrients", (req, res) => {
   res.render("nutrients/index");
 });
@@ -31,6 +35,10 @@ router.get("/auth/register", (req, res) => {
 
 router.get("/profile", (req, res) => {
   res.render("profile");
+});
+
+router.get("/plants/:id", (req, res) => {
+  res.render("plants/detail");
 });
 
 module.exports = router;
