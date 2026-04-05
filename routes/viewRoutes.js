@@ -41,4 +41,6 @@ router.get("/plants/:id", (req, res) => {
   res.render("plants/detail");
 });
 
+router.get("/wiki/:slug", (req, res) => res.render("wiki/detail"));
+
 module.exports = router;

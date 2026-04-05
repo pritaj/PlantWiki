@@ -398,7 +398,7 @@ async function loadWiki() {
     .map(
       (article) => `
   <div class="col-md-4 wiki-card" data-category="${article.category}">
-    <div class="card h-100">
+    <div class="card h-100" style="cursor:pointer;" onclick="window.location.href='/wiki/${article.slug}'">
       ${article.image ? `<img src="/uploads/${article.image}" class="card-img-top" style="height: 200px; object-fit: cover;">` : '<div class="bg-light d-flex align-items-center justify-content-center" style="height: 200px;">📖</div>'}
       <div class="card-body">
         <h5 class="card-title text-success">${article.title}</h5>
@@ -414,6 +414,39 @@ async function loadWiki() {
   document
     .getElementById("filter-category")
     ?.addEventListener("change", filterWiki);
+}
+
+async function loadWikiDetail() {
+  const container = document.getElementById("wiki-detail");
+  if (!container) return;
+
+  const slug = window.location.pathname.split("/").pop();
+  const res = await fetch(`/api/wiki/${slug}`);
+  if (!res.ok) {
+    container.innerHTML = '<p class="text-danger">Cikk nem található!</p>';
+    return;
+  }
+  const article = await res.json();
+
+  container.innerHTML = `
+    <div class="row">
+      <div class="col-md-8 mx-auto">
+        ${article.image ? `<img src="/uploads/${article.image}" class="img-fluid rounded mb-4" style="max-height: 400px; object-fit: cover; width: 100%;">` : ""}
+        <div class="mb-3">
+          <a href="/wiki" class="btn btn-outline-success btn-sm">← Vissza</a>
+        </div>
+        <h2 class="text-success">${article.title}</h2>
+        <span class="badge bg-success mb-3">${article.category}</span>
+        ${article.Plant ? `<p class="text-muted">🌱 Kapcsolódó növény: <strong>${article.Plant.name}</strong></p>` : ""}
+        <div class="card p-4">
+          <p style="white-space: pre-wrap;">${article.content}</p>
+        </div>
+        <div class="mt-3 text-muted small">
+          Utoljára frissítve: ${new Date(article.updatedAt).toLocaleDateString("hu-HU")}
+        </div>
+      </div>
+    </div>
+  `;
 }
 
 function filterWiki() {
@@ -1353,6 +1386,7 @@ document.addEventListener("DOMContentLoaded", () => {
   loadProfile();
   loadPlantDetail();
   loadProductDetail();
+  loadWikiDetail();
   renderCart();
 
   if (window.location.pathname.startsWith("/admin")) {
