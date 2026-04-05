@@ -110,26 +110,33 @@ async function loadPlants() {
   container.innerHTML = plants
     .map(
       (plant) => `
-  <div class="col-md-4 plant-card" data-type="${plant.type}" data-difficulty="${plant.difficulty}">
-    <div class="card h-100">
-      ${plant.image ? `<img src="/uploads/${plant.image}" class="card-img-top" style="height: 200px; object-fit: cover;">` : '<div class="bg-light d-flex align-items-center justify-content-center" style="height: 200px;">🌱</div>'}
-      <div class="card-body">
-        <h5 class="card-title text-success">${plant.name}</h5>
-        <p class="text-muted fst-italic">${plant.latin_name || ""}</p>
-        <p class="card-text">${plant.description || ""}</p>
-        <span class="badge bg-success">${plant.type}</span>
-        <span class="badge bg-secondary">${plant.difficulty}</span>
-      </div>
-      <div class="card-footer text-muted">
-        💧 ${plant.watering_frequency || "N/A"} &nbsp; ☀️ ${plant.sunlight || "N/A"}
+    <div class="col-md-4 plant-card" data-type="${plant.type}" data-difficulty="${plant.difficulty}">
+      <div class="card h-100" style="cursor:pointer;" onclick="window.location.href='/plants/${plant.id}'">
+        ${plant.image ? `<img src="/uploads/${plant.image}" class="card-img-top" style="height: 200px; object-fit: cover;">` : '<div class="bg-light d-flex align-items-center justify-content-center" style="height: 200px;">🌱</div>'}
+        <div class="card-body">
+          <h5 class="card-title text-success">${plant.name}</h5>
+          <p class="text-muted fst-italic">${plant.latin_name || ""}</p>
+          <p class="card-text">${plant.description || ""}</p>
+          <span class="badge bg-success">${plant.type}</span>
+          <span class="badge bg-secondary">${plant.difficulty}</span>
+          <div class="mt-2" id="avg-plants-${plant.id}">☆☆☆☆☆ <small class="text-muted">(0)</small></div>
+        </div>
+        <div class="card-footer text-muted">
+          💧 ${plant.watering_frequency || "N/A"} &nbsp; ☀️ ${plant.sunlight || "N/A"}
+        </div>
       </div>
     </div>
-  </div>
-`,
+  `,
     )
     .join("");
 
-  // Keresés és szűrés
+  // Átlagos értékelés betöltése
+  for (const plant of plants) {
+    const { avg, count } = await getAverageRating("plants", plant.id);
+    const el = document.getElementById(`avg-plants-${plant.id}`);
+    if (el) el.innerHTML = renderStarAvg(avg, count);
+  }
+
   document.getElementById("search")?.addEventListener("input", filterPlants);
   document
     .getElementById("filter-type")
@@ -174,27 +181,54 @@ async function loadProducts() {
   container.innerHTML = products
     .map(
       (product) => `
-  <div class="col-md-4 product-card" data-category="${product.category}">
-    <div class="card h-100">
-      ${product.image ? `<img src="/uploads/${product.image}" class="card-img-top" style="height: 200px; object-fit: cover;">` : '<div class="bg-light d-flex align-items-center justify-content-center" style="height: 200px;">🛒</div>'}
-      <div class="card-body">
-        <h5 class="card-title text-success">${product.name}</h5>
-        <p class="card-text">${product.description || ""}</p>
-        <span class="badge bg-success">${product.category}</span>
-      </div>
-      <div class="card-footer d-flex justify-content-between align-items-center">
-        <strong class="text-success">${product.price} Ft</strong>
-        <button class="btn btn-success btn-sm" onclick="addToCart(${product.id}, '${product.name}', ${product.price})">🛒 Kosárba</button>
+    <div class="col-md-4 product-card" data-category="${product.category}">
+      <div class="card h-100">
+        <div style="cursor:pointer;" onclick="window.location.href='/shop/${product.id}'">
+          ${product.image ? `<img src="/uploads/${product.image}" class="card-img-top" style="height: 200px; object-fit: cover;">` : '<div class="bg-light d-flex align-items-center justify-content-center" style="height: 200px;">🛒</div>'}
+          <div class="card-body">
+            <h5 class="card-title text-success">${product.name}</h5>
+            <p class="card-text">${product.description || ""}</p>
+            <span class="badge bg-success">${product.category}</span>
+            <div class="mt-2" id="avg-products-${product.id}">☆☆☆☆☆ <small class="text-muted">(0)</small></div>
+          </div>
+        </div>
+        <div class="card-footer d-flex justify-content-between align-items-center">
+          <strong class="text-success">${product.price} Ft</strong>
+          <button class="btn btn-success btn-sm" onclick="addToCart(${product.id}, '${product.name}', ${product.price})">🛒 Kosárba</button>
+        </div>
       </div>
     </div>
-  </div>
-`,
+  `,
     )
     .join("");
+
+  // Átlagos értékelés betöltése
+  for (const product of products) {
+    const { avg, count } = await getAverageRating("products", product.id);
+    const el = document.getElementById(`avg-products-${product.id}`);
+    if (el) el.innerHTML = renderStarAvg(avg, count);
+  }
 
   document
     .getElementById("filter-category")
     ?.addEventListener("change", filterProducts);
+}
+
+async function getAverageRating(type, id) {
+  const res = await fetch(`/api/reviews/${type}/${id}`);
+  const reviews = await res.json();
+  if (reviews.length === 0) return { avg: 0, count: 0 };
+  const avg = reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length;
+  return { avg: Math.round(avg * 10) / 10, count: reviews.length };
+}
+
+function renderStarAvg(avg, count) {
+  let stars = "";
+  for (let i = 1; i <= 5; i++) {
+    if (i <= Math.floor(avg)) stars += "⭐";
+    else stars += "☆";
+  }
+  return `<span>${stars} <small class="text-muted">(${count})</small></span>`;
 }
 
 function filterProducts() {
@@ -1017,6 +1051,78 @@ function adminGuard() {
     window.location.href = "/auth/login";
   }
 }
+
+// Csillagok megjelenítése
+function renderStars(rating) {
+  let stars = "";
+  for (let i = 1; i <= 5; i++) {
+    stars += i <= rating ? "⭐" : "☆";
+  }
+  return stars;
+}
+
+// Értékelések betöltése
+async function loadReviews(type, id, containerId) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+
+  const res = await fetch(`/api/reviews/${type}/${id}`);
+  const reviews = await res.json();
+
+  if (reviews.length === 0) {
+    container.innerHTML =
+      '<p class="text-muted small">Még nincs értékelés.</p>';
+    return;
+  }
+
+  container.innerHTML = reviews
+    .map(
+      (review) => `
+    <div class="border-bottom pb-2 mb-2">
+      <div class="d-flex justify-content-between">
+        <strong class="small">${review.User.username}</strong>
+        <span>${renderStars(review.rating)}</span>
+      </div>
+      ${review.comment ? `<p class="small mb-0">${review.comment}</p>` : ""}
+    </div>
+  `,
+    )
+    .join("");
+}
+
+// Értékelés hozzáadása
+async function submitReview(type, id) {
+  const token = getToken();
+  if (!token) {
+    alert("Bejelentkezés szükséges az értékeléshez!");
+    return;
+  }
+
+  const rating = document.getElementById(`rating-${type}-${id}`).value;
+  const comment = document.getElementById(`comment-${type}-${id}`).value;
+
+  const body = { rating: parseInt(rating), comment };
+  if (type === "plants") body.plantId = id;
+  if (type === "products") body.productId = id;
+
+  const res = await fetch("/api/reviews", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(body),
+  });
+
+  const data = await res.json();
+  if (res.ok) {
+    document.getElementById(`comment-${type}-${id}`).value = "";
+    loadReviews(type, id, `reviews-${type}-${id}`);
+  } else {
+    alert(data.message);
+  }
+}
+
 // Oldalbetöltéskor admin funkciók
 document.addEventListener("DOMContentLoaded", () => {
   updateNavbar();
