@@ -8,6 +8,7 @@ const WikiArticle = require("./WikiArticle");
 const Disease = require("./Disease");
 const Nutrient = require("./Nutrient");
 const Review = require("./Review");
+const Favorite = require("./Favorite");
 
 // Kapcsolatok
 User.hasMany(Order, { foreignKey: "userId" });
@@ -34,6 +35,15 @@ Review.belongsTo(Plant, { foreignKey: "plantId" });
 Product.hasMany(Review, { foreignKey: "productId" });
 Review.belongsTo(Product, { foreignKey: "productId" });
 
+User.hasMany(Favorite, { foreignKey: "userId" });
+Favorite.belongsTo(User, { foreignKey: "userId" });
+
+Plant.hasMany(Favorite, { foreignKey: "plantId" });
+Favorite.belongsTo(Plant, { foreignKey: "plantId" });
+
+Product.hasMany(Favorite, { foreignKey: "productId" });
+Favorite.belongsTo(Product, { foreignKey: "productId" });
+
 module.exports = {
   sequelize,
   User,
@@ -45,4 +55,5 @@ module.exports = {
   Disease,
   Nutrient,
   Review,
+  Favorite,
 };

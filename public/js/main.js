@@ -110,8 +110,9 @@ async function loadPlants() {
   container.innerHTML = plants
     .map(
       (plant) => `
-    <div class="col-md-4 plant-card" data-type="${plant.type}" data-difficulty="${plant.difficulty}">
-      <div class="card h-100" style="cursor:pointer;" onclick="window.location.href='/plants/${plant.id}'">
+  <div class="col-md-4 plant-card" data-type="${plant.type}" data-difficulty="${plant.difficulty}">
+    <div class="card h-100">
+      <div style="cursor:pointer;" onclick="window.location.href='/plants/${plant.id}'">
         ${plant.image ? `<img src="/uploads/${plant.image}" class="card-img-top" style="height: 200px; object-fit: cover;">` : '<div class="bg-light d-flex align-items-center justify-content-center" style="height: 200px;">🌱</div>'}
         <div class="card-body">
           <h5 class="card-title text-success">${plant.name}</h5>
@@ -121,20 +122,24 @@ async function loadPlants() {
           <span class="badge bg-secondary">${plant.difficulty}</span>
           <div class="mt-2" id="avg-plants-${plant.id}">☆☆☆☆☆ <small class="text-muted">(0)</small></div>
         </div>
-        <div class="card-footer text-muted">
-          💧 ${plant.watering_frequency || "N/A"} &nbsp; ☀️ ${plant.sunlight || "N/A"}
-        </div>
+      </div>
+      <div class="card-footer d-flex justify-content-between align-items-center">
+        <div>💧 ${plant.watering_frequency || "N/A"} &nbsp; ☀️ ${plant.sunlight || "N/A"}</div>
+        <button class="btn btn-sm btn-outline-danger" data-fav="false" id="fav-plant-${plant.id}" onclick="toggleFavorite('plant', ${plant.id}, this)" title="Kedvencekhez adás">🤍</button>
       </div>
     </div>
-  `,
+  </div>
+`,
     )
     .join("");
 
-  // Átlagos értékelés betöltése
+  // Átlagos értékelés és kedvenc státusz betöltése
   for (const plant of plants) {
     const { avg, count } = await getAverageRating("plants", plant.id);
     const el = document.getElementById(`avg-plants-${plant.id}`);
     if (el) el.innerHTML = renderStarAvg(avg, count);
+    const favBtn = document.getElementById(`fav-plant-${plant.id}`);
+    if (favBtn) checkFavoriteStatus("plant", plant.id, favBtn);
   }
 
   document.getElementById("search")?.addEventListener("input", filterPlants);
@@ -181,34 +186,38 @@ async function loadProducts() {
   container.innerHTML = products
     .map(
       (product) => `
-    <div class="col-md-4 product-card" data-category="${product.category}">
-      <div class="card h-100">
-        <div style="cursor:pointer;" onclick="window.location.href='/shop/${product.id}'">
-          ${product.image ? `<img src="/uploads/${product.image}" class="card-img-top" style="height: 200px; object-fit: cover;">` : '<div class="bg-light d-flex align-items-center justify-content-center" style="height: 200px;">🛒</div>'}
-          <div class="card-body">
-            <h5 class="card-title text-success">${product.name}</h5>
-            <p class="card-text">${product.description || ""}</p>
-            <span class="badge bg-success">${product.category}</span>
-            <div class="mt-2" id="avg-products-${product.id}">☆☆☆☆☆ <small class="text-muted">(0)</small></div>
-          </div>
+  <div class="col-md-4 product-card" data-category="${product.category}">
+    <div class="card h-100">
+      <div style="cursor:pointer;" onclick="window.location.href='/shop/${product.id}'">
+        ${product.image ? `<img src="/uploads/${product.image}" class="card-img-top" style="height: 200px; object-fit: cover;">` : '<div class="bg-light d-flex align-items-center justify-content-center" style="height: 200px;">🛒</div>'}
+        <div class="card-body">
+          <h5 class="card-title text-success">${product.name}</h5>
+          <p class="card-text">${product.description || ""}</p>
+          <span class="badge bg-success">${product.category}</span>
+          <div class="mt-2" id="avg-products-${product.id}">☆☆☆☆☆ <small class="text-muted">(0)</small></div>
         </div>
-        <div class="card-footer d-flex justify-content-between align-items-center">
-          <strong class="text-success">${product.price} Ft</strong>
+      </div>
+      <div class="card-footer d-flex justify-content-between align-items-center">
+        <strong class="text-success">${product.price} Ft</strong>
+        <div class="d-flex gap-2">
+          <button class="btn btn-sm btn-outline-danger" data-fav="false" id="fav-product-${product.id}" onclick="toggleFavorite('product', ${product.id}, this)" title="Kedvencekhez adás">🤍</button>
           <button class="btn btn-success btn-sm" onclick="addToCart(${product.id}, '${product.name}', ${product.price})">🛒 Kosárba</button>
         </div>
       </div>
     </div>
-  `,
+  </div>
+`,
     )
     .join("");
 
-  // Átlagos értékelés betöltése
+  // Átlagos értékelés és kedvenc státusz betöltése
   for (const product of products) {
     const { avg, count } = await getAverageRating("products", product.id);
     const el = document.getElementById(`avg-products-${product.id}`);
     if (el) el.innerHTML = renderStarAvg(avg, count);
+    const favBtn = document.getElementById(`fav-product-${product.id}`);
+    if (favBtn) checkFavoriteStatus("product", product.id, favBtn);
   }
-
   document
     .getElementById("filter-category")
     ?.addEventListener("change", filterProducts);
@@ -1666,6 +1675,119 @@ async function loadStats() {
   }
 }
 
+// Kedvencek
+async function toggleFavorite(type, id, btn) {
+  const token = getToken();
+  if (!token) {
+    alert("Bejelentkezés szükséges a kedvencekhez!");
+    return;
+  }
+
+  const isFav = btn.dataset.fav === "true";
+
+  if (isFav) {
+    const favId = btn.dataset.favId;
+    const res = await fetch(`/api/favorites/${favId}`, {
+      method: "DELETE",
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (res.ok) {
+      btn.dataset.fav = "false";
+      btn.textContent = "🤍";
+      btn.title = "Kedvencekhez adás";
+    }
+  } else {
+    const body = type === "plant" ? { plantId: id } : { productId: id };
+    const res = await fetch("/api/favorites", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(body),
+    });
+    const data = await res.json();
+    if (res.ok) {
+      btn.dataset.fav = "true";
+      btn.dataset.favId = data.favorite.id;
+      btn.textContent = "❤️";
+      btn.title = "Eltávolítás a kedvencekből";
+    }
+  }
+}
+
+async function checkFavoriteStatus(type, id, btn) {
+  const token = getToken();
+  if (!token) return;
+
+  const param = type === "plant" ? `plantId=${id}` : `productId=${id}`;
+  const res = await fetch(`/api/favorites/check?${param}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  const data = await res.json();
+  if (data.isFavorite) {
+    btn.dataset.fav = "true";
+    btn.dataset.favId = data.favoriteId;
+    btn.textContent = "❤️";
+    btn.title = "Eltávolítás a kedvencekből";
+  }
+}
+
+async function loadFavorites() {
+  const container = document.getElementById("favorites-container");
+  if (!container) return;
+
+  const token = getToken();
+  if (!token) {
+    window.location.href = "/auth/login";
+    return;
+  }
+
+  const res = await fetch("/api/favorites", {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  const favorites = await res.json();
+
+  if (favorites.length === 0) {
+    container.innerHTML = '<p class="text-muted">Még nincsenek kedvenceid.</p>';
+    return;
+  }
+
+  container.innerHTML = favorites
+    .map((fav) => {
+      const item = fav.Plant || fav.Product;
+      const type = fav.Plant ? "növény" : "termék";
+      const link = fav.Plant ? `/plants/${item.id}` : `/shop/${item.id}`;
+      return `
+      <div class="col-md-4">
+        <div class="card h-100">
+          ${item.image ? `<img src="/uploads/${item.image}" class="card-img-top" style="height: 200px; object-fit: cover;">` : '<div class="bg-light d-flex align-items-center justify-content-center" style="height: 200px;">🌱</div>'}
+          <div class="card-body">
+            <h5 class="card-title text-success">${item.name}</h5>
+            <span class="badge bg-success">${type}</span>
+          </div>
+          <div class="card-footer d-flex justify-content-between">
+            <a href="${link}" class="btn btn-success btn-sm">Részletek</a>
+            <button class="btn btn-outline-danger btn-sm" onclick="removeFavoriteFromList(${fav.id}, this)">❤️ Eltávolítás</button>
+          </div>
+        </div>
+      </div>
+    `;
+    })
+    .join("");
+}
+
+async function removeFavoriteFromList(favId, btn) {
+  const token = getToken();
+  const res = await fetch(`/api/favorites/${favId}`, {
+    method: "DELETE",
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (res.ok) {
+    btn.closest(".col-md-4").remove();
+  }
+}
+
 // Oldalbetöltéskor admin funkciók
 document.addEventListener("DOMContentLoaded", () => {
   loadDarkMode();
@@ -1677,6 +1799,7 @@ document.addEventListener("DOMContentLoaded", () => {
   loadWikiDetail();
   loadStats();
   renderCart();
+  loadFavorites();
 
   if (window.location.pathname.startsWith("/admin")) {
     adminGuard();

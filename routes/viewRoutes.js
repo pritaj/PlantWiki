@@ -43,4 +43,6 @@ router.get("/plants/:id", (req, res) => {
 
 router.get("/wiki/:slug", (req, res) => res.render("wiki/detail"));
 
+router.get("/favorites", (req, res) => res.render("favorites"));
+
 module.exports = router;

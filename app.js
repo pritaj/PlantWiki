@@ -18,7 +18,9 @@ const shopRoutes = require("./routes/shopRoutes");
 const wikiRoutes = require("./routes/wikiRoutes");
 const nutrientRoutes = require("./routes/nutrientRoutes");
 const reviewRoutes = require("./routes/reviewRoutes");
+const favoriteRoutes = require("./routes/favoriteRoutes");
 
+app.use("/api/favorites", favoriteRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/plants", plantRoutes);
 app.use("/api/shop", shopRoutes);
