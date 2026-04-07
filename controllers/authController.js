@@ -30,6 +30,31 @@ const register = async (req, res) => {
   }
 };
 
+const changePassword = async (req, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+
+    const user = await User.findByPk(req.user.id);
+    if (!user) {
+      return res.status(404).json({ message: "Felhasználó nem található!" });
+    }
+
+    // Jelenlegi jelszó ellenőrzés
+    const isMatch = await bcrypt.compare(currentPassword, user.password);
+    if (!isMatch) {
+      return res.status(400).json({ message: "Hibás jelenlegi jelszó!" });
+    }
+
+    // Új jelszó titkosítás
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    await user.update({ password: hashedPassword });
+
+    res.json({ message: "Jelszó sikeresen megváltoztatva!" });
+  } catch (err) {
+    res.status(500).json({ message: "Szerver hiba!", error: err.message });
+  }
+};
+
 // Login
 const login = async (req, res) => {
   try {
@@ -74,4 +99,4 @@ const me = async (req, res) => {
   }
 };
 
-module.exports = { register, login, me };
+module.exports = { register, login, me, changePassword };

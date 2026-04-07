@@ -105,6 +105,60 @@ async function register() {
   }
 }
 
+async function changePassword() {
+  const currentPassword = document.getElementById("current-password").value;
+  const newPassword = document.getElementById("new-password").value;
+  const newPasswordConfirm = document.getElementById(
+    "new-password-confirm",
+  ).value;
+
+  const errorEl = document.getElementById("password-error");
+  const successEl = document.getElementById("password-success");
+  errorEl.style.display = "none";
+  successEl.style.display = "none";
+
+  if (!currentPassword || !newPassword || !newPasswordConfirm) {
+    errorEl.style.display = "block";
+    errorEl.textContent = "Minden mező kitöltése kötelező!";
+    return;
+  }
+
+  if (newPassword !== newPasswordConfirm) {
+    errorEl.style.display = "block";
+    errorEl.textContent = "Az új jelszavak nem egyeznek!";
+    return;
+  }
+
+  if (newPassword.length < 6) {
+    errorEl.style.display = "block";
+    errorEl.textContent =
+      "Az új jelszónak legalább 6 karakter hosszúnak kell lennie!";
+    return;
+  }
+
+  const token = getToken();
+  const res = await fetch("/api/auth/change-password", {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ currentPassword, newPassword }),
+  });
+
+  const data = await res.json();
+  if (res.ok) {
+    successEl.style.display = "block";
+    successEl.textContent = data.message;
+    document.getElementById("current-password").value = "";
+    document.getElementById("new-password").value = "";
+    document.getElementById("new-password-confirm").value = "";
+  } else {
+    errorEl.style.display = "block";
+    errorEl.textContent = data.message;
+  }
+}
+
 // Növények betöltése
 async function loadPlants() {
   const container = document.getElementById("plants-container");
