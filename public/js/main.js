@@ -4,30 +4,42 @@ const setToken = (token) => localStorage.setItem("token", token);
 const removeToken = () => localStorage.removeItem("token");
 
 // Navbar frissítés
-function updateNavbar() {
+async function updateNavbar() {
   const token = getToken();
   const nav = document.getElementById("auth-nav");
   if (!nav) return;
 
   if (token) {
     try {
-      const payload = JSON.parse(atob(token.split(".")[1]));
-      const isAdmin = payload.role === "admin";
+      const res = await fetch("/api/auth/me", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (!res.ok) {
+        removeToken();
+        nav.innerHTML = `
+          <li class="nav-item"><a class="nav-link text-white" href="/auth/login">Bejelentkezés</a></li>
+          <li class="nav-item"><a class="nav-link text-white" href="/auth/register">Regisztráció</a></li>
+        `;
+        return;
+      }
+
+      const user = await res.json();
       nav.innerHTML = `
-        ${isAdmin ? '<li class="nav-item"><a class="nav-link" href="/admin">⚙️ Admin</a></li>' : ""}
-        <li class="nav-item"><a class="nav-link" href="/profile">👤 Profil</a></li>
-        <li class="nav-item"><a class="nav-link" href="#" onclick="logout()">Kijelentkezés</a></li>
+        ${user.role === "admin" ? '<li class="nav-item"><a class="nav-link text-white" href="/admin">⚙️ Admin</a></li>' : ""}
+        <li class="nav-item"><a class="nav-link text-white" href="/profile">👤 Profil</a></li>
+        <li class="nav-item"><a class="nav-link text-white" href="#" onclick="logout()">Kijelentkezés</a></li>
       `;
     } catch (e) {
       nav.innerHTML = `
-        <li class="nav-item"><a class="nav-link" href="/auth/login">Bejelentkezés</a></li>
-        <li class="nav-item"><a class="nav-link" href="/auth/register">Regisztráció</a></li>
+        <li class="nav-item"><a class="nav-link text-white" href="/auth/login">Bejelentkezés</a></li>
+        <li class="nav-item"><a class="nav-link text-white" href="/auth/register">Regisztráció</a></li>
       `;
     }
   } else {
     nav.innerHTML = `
-      <li class="nav-item"><a class="nav-link" href="/auth/login">Bejelentkezés</a></li>
-      <li class="nav-item"><a class="nav-link" href="/auth/register">Regisztráció</a></li>
+      <li class="nav-item"><a class="nav-link text-white" href="/auth/login">Bejelentkezés</a></li>
+      <li class="nav-item"><a class="nav-link text-white" href="/auth/register">Regisztráció</a></li>
     `;
   }
 }
@@ -500,6 +512,70 @@ async function calculate() {
     `;
   } else {
     resultContent.innerHTML = `<p class="text-danger">${data.message}</p>`;
+  }
+} // Admin - Felhasználók betöltése
+async function loadAdminUsers() {
+  const tbody = document.getElementById("users-tbody");
+  if (!tbody) return;
+
+  const token = getToken();
+  const res = await fetch("/api/admin/users", {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  const users = await res.json();
+
+  tbody.innerHTML = users
+    .map(
+      (user) => `
+    <tr>
+      <td>${user.id}</td>
+      <td>${user.username}</td>
+      <td>${user.email}</td>
+      <td>
+        <select class="form-select form-select-sm" onchange="updateUserRole(${user.id}, this.value)" ${user.role === "admin" ? "" : ""}>
+          <option value="user" ${user.role === "user" ? "selected" : ""}>user</option>
+          <option value="admin" ${user.role === "admin" ? "selected" : ""}>admin</option>
+        </select>
+      </td>
+      <td>${new Date(user.createdAt).toLocaleDateString("hu-HU")}</td>
+      <td>
+        ${user.role !== "admin" ? `<button class="btn btn-sm btn-danger" onclick="deleteUser(${user.id})">Törlés</button>` : '<span class="text-muted">-</span>'}
+      </td>
+    </tr>
+  `,
+    )
+    .join("");
+}
+
+async function updateUserRole(id, role) {
+  const token = getToken();
+  const res = await fetch(`/api/admin/users/${id}`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ role }),
+  });
+  if (!res.ok) {
+    const data = await res.json();
+    alert(data.message);
+    loadAdminUsers();
+  }
+}
+
+async function deleteUser(id) {
+  if (!confirm("Biztosan törlöd ezt a felhasználót?")) return;
+  const token = getToken();
+  const res = await fetch(`/api/admin/users/${id}`, {
+    method: "DELETE",
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  if (res.ok) {
+    await loadAdminUsers();
+  } else {
+    const data = await res.json();
+    alert(data.message);
   }
 }
 
@@ -1815,6 +1891,7 @@ document.addEventListener("DOMContentLoaded", () => {
   loadPlants();
   loadProducts();
   loadWiki();
+  loadAdminUsers();
   loadAdminPlants();
   loadAdminProducts();
   loadAdminWiki();
