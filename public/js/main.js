@@ -1401,6 +1401,270 @@ function loadDarkMode() {
     if (btn) btn.textContent = "☀️";
   }
 }
+async function loadStats() {
+  const countsContainer = document.getElementById("stats-counts");
+  if (!countsContainer) return;
+
+  const token = getToken();
+  const res = await fetch("/api/admin/stats", {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+
+  if (!res.ok) {
+    countsContainer.innerHTML =
+      '<p class="text-danger">Hiba a statisztikák betöltésekor!</p>';
+    return;
+  }
+
+  const data = await res.json();
+  const { counts, orderStats, plantStats, productStats } = data;
+
+  countsContainer.innerHTML = `
+    <div class="col-md-2 col-sm-4 col-6">
+      <div class="card text-center p-3">
+        <div style="font-size: 2rem;">👥</div>
+        <h3 class="text-success">${counts.users}</h3>
+        <small class="text-muted">Felhasználó</small>
+      </div>
+    </div>
+    <div class="col-md-2 col-sm-4 col-6">
+      <div class="card text-center p-3">
+        <div style="font-size: 2rem;">🌱</div>
+        <h3 class="text-success">${counts.plants}</h3>
+        <small class="text-muted">Növény</small>
+      </div>
+    </div>
+    <div class="col-md-2 col-sm-4 col-6">
+      <div class="card text-center p-3">
+        <div style="font-size: 2rem;">🛒</div>
+        <h3 class="text-success">${counts.products}</h3>
+        <small class="text-muted">Termék</small>
+      </div>
+    </div>
+    <div class="col-md-2 col-sm-4 col-6">
+      <div class="card text-center p-3">
+        <div style="font-size: 2rem;">📦</div>
+        <h3 class="text-success">${counts.orders}</h3>
+        <small class="text-muted">Rendelés</small>
+      </div>
+    </div>
+    <div class="col-md-2 col-sm-4 col-6">
+      <div class="card text-center p-3">
+        <div style="font-size: 2rem;">📖</div>
+        <h3 class="text-success">${counts.wiki}</h3>
+        <small class="text-muted">Wiki cikk</small>
+      </div>
+    </div>
+    <div class="col-md-2 col-sm-4 col-6">
+      <div class="card text-center p-3">
+        <div style="font-size: 2rem;">💰</div>
+        <h3 class="text-success">${counts.revenue.toLocaleString()}</h3>
+        <small class="text-muted">Bevétel (Ft)</small>
+      </div>
+    </div>
+  `;
+
+  const colors = [
+    "#198754",
+    "#0d6efd",
+    "#ffc107",
+    "#dc3545",
+    "#0dcaf0",
+    "#6f42c1",
+  ];
+
+  const orderCtx = document.getElementById("orderChart");
+  if (orderCtx && orderStats.length > 0) {
+    new Chart(orderCtx, {
+      type: "doughnut",
+      data: {
+        labels: orderStats.map((o) => o.status),
+        datasets: [
+          {
+            data: orderStats.map((o) => parseInt(o.count)),
+            backgroundColor: colors,
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        plugins: { legend: { position: "bottom" } },
+      },
+    });
+  }
+
+  const plantCtx = document.getElementById("plantChart");
+  if (plantCtx && plantStats.length > 0) {
+    new Chart(plantCtx, {
+      type: "doughnut",
+      data: {
+        labels: plantStats.map((p) => p.type),
+        datasets: [
+          {
+            data: plantStats.map((p) => parseInt(p.count)),
+            backgroundColor: colors,
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        plugins: { legend: { position: "bottom" } },
+      },
+    });
+  }
+
+  const productCtx = document.getElementById("productChart");
+  if (productCtx && productStats.length > 0) {
+    new Chart(productCtx, {
+      type: "doughnut",
+      data: {
+        labels: productStats.map((p) => p.category),
+        datasets: [
+          {
+            data: productStats.map((p) => parseInt(p.count)),
+            backgroundColor: colors,
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        plugins: { legend: { position: "bottom" } },
+      },
+    });
+  }
+}
+async function loadStats() {
+  const countsContainer = document.getElementById("stats-counts");
+  if (!countsContainer) return;
+
+  const token = getToken();
+  const res = await fetch("/api/admin/stats", {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+
+  if (!res.ok) {
+    countsContainer.innerHTML =
+      '<p class="text-danger">Hiba a statisztikák betöltésekor!</p>';
+    return;
+  }
+
+  const data = await res.json();
+  const { counts, orderStats, plantStats, productStats } = data;
+
+  countsContainer.innerHTML = `
+    <div class="col-md-2 col-sm-4 col-6">
+      <div class="card text-center p-3">
+        <div style="font-size: 2rem;">👥</div>
+        <h3 class="text-success">${counts.users}</h3>
+        <small class="text-muted">Felhasználó</small>
+      </div>
+    </div>
+    <div class="col-md-2 col-sm-4 col-6">
+      <div class="card text-center p-3">
+        <div style="font-size: 2rem;">🌱</div>
+        <h3 class="text-success">${counts.plants}</h3>
+        <small class="text-muted">Növény</small>
+      </div>
+    </div>
+    <div class="col-md-2 col-sm-4 col-6">
+      <div class="card text-center p-3">
+        <div style="font-size: 2rem;">🛒</div>
+        <h3 class="text-success">${counts.products}</h3>
+        <small class="text-muted">Termék</small>
+      </div>
+    </div>
+    <div class="col-md-2 col-sm-4 col-6">
+      <div class="card text-center p-3">
+        <div style="font-size: 2rem;">📦</div>
+        <h3 class="text-success">${counts.orders}</h3>
+        <small class="text-muted">Rendelés</small>
+      </div>
+    </div>
+    <div class="col-md-2 col-sm-4 col-6">
+      <div class="card text-center p-3">
+        <div style="font-size: 2rem;">📖</div>
+        <h3 class="text-success">${counts.wiki}</h3>
+        <small class="text-muted">Wiki cikk</small>
+      </div>
+    </div>
+    <div class="col-md-2 col-sm-4 col-6">
+      <div class="card text-center p-3">
+        <div style="font-size: 2rem;">💰</div>
+        <h3 class="text-success">${counts.revenue.toLocaleString()}</h3>
+        <small class="text-muted">Bevétel (Ft)</small>
+      </div>
+    </div>
+  `;
+
+  const colors = [
+    "#198754",
+    "#0d6efd",
+    "#ffc107",
+    "#dc3545",
+    "#0dcaf0",
+    "#6f42c1",
+  ];
+
+  const orderCtx = document.getElementById("orderChart");
+  if (orderCtx && orderStats.length > 0) {
+    new Chart(orderCtx, {
+      type: "doughnut",
+      data: {
+        labels: orderStats.map((o) => o.status),
+        datasets: [
+          {
+            data: orderStats.map((o) => parseInt(o.count)),
+            backgroundColor: colors,
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        plugins: { legend: { position: "bottom" } },
+      },
+    });
+  }
+
+  const plantCtx = document.getElementById("plantChart");
+  if (plantCtx && plantStats.length > 0) {
+    new Chart(plantCtx, {
+      type: "doughnut",
+      data: {
+        labels: plantStats.map((p) => p.type),
+        datasets: [
+          {
+            data: plantStats.map((p) => parseInt(p.count)),
+            backgroundColor: colors,
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        plugins: { legend: { position: "bottom" } },
+      },
+    });
+  }
+
+  const productCtx = document.getElementById("productChart");
+  if (productCtx && productStats.length > 0) {
+    new Chart(productCtx, {
+      type: "doughnut",
+      data: {
+        labels: productStats.map((p) => p.category),
+        datasets: [
+          {
+            data: productStats.map((p) => parseInt(p.count)),
+            backgroundColor: colors,
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        plugins: { legend: { position: "bottom" } },
+      },
+    });
+  }
+}
 
 // Oldalbetöltéskor admin funkciók
 document.addEventListener("DOMContentLoaded", () => {
@@ -1411,6 +1675,7 @@ document.addEventListener("DOMContentLoaded", () => {
   loadPlantDetail();
   loadProductDetail();
   loadWikiDetail();
+  loadStats();
   renderCart();
 
   if (window.location.pathname.startsWith("/admin")) {

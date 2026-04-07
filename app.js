@@ -29,8 +29,10 @@ app.use("/api/reviews", reviewRoutes);
 // View Routes
 const viewRoutes = require("./routes/viewRoutes");
 const adminRoutes = require("./routes/adminRoutes");
+const adminApiRoutes = require("./routes/adminApiRoutes");
 
 app.use("/", viewRoutes);
 app.use("/admin", adminRoutes);
+app.use("/api/admin", adminApiRoutes);
 
 module.exports = app;

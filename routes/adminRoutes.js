@@ -42,4 +42,8 @@ router.get("/orders", (req, res) => {
   res.render("admin/orders");
 });
 
+router.get("/stats", (req, res) => {
+  res.render("admin/stats");
+});
+
 module.exports = router;
