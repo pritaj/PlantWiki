@@ -1540,6 +1540,58 @@ function loadDarkMode() {
     if (btn) btn.textContent = "☀️";
   }
 }
+async function loadMyOrders() {
+  const container = document.getElementById("my-orders");
+  if (!container) return;
+
+  const token = getToken();
+  if (!token) return;
+
+  const res = await fetch("/api/shop/orders", {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  const orders = await res.json();
+
+  if (orders.length === 0) {
+    container.innerHTML =
+      '<p class="text-muted">Még nincsenek rendeléseid.</p>';
+    return;
+  }
+
+  container.innerHTML = orders
+    .map(
+      (order) => `
+    <div class="card mb-3">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <strong>#${order.id} rendelés</strong>
+        <span class="badge ${order.status === "teljesítve" ? "bg-success" : order.status === "törölve" ? "bg-danger" : "bg-warning text-dark"}">${order.status}</span>
+      </div>
+      <div class="card-body">
+        <p class="mb-1"><strong>Szállítási cím:</strong> ${order.shipping_address}</p>
+        <p class="mb-1"><strong>Végösszeg:</strong> ${order.total_price} Ft</p>
+        <p class="mb-1"><strong>Dátum:</strong> ${new Date(order.createdAt).toLocaleDateString("hu-HU")}</p>
+        ${
+          order.OrderItems && order.OrderItems.length > 0
+            ? `
+          <hr>
+          <strong>Tételek:</strong>
+          <ul class="mt-2">
+            ${order.OrderItems.map(
+              (item) => `
+              <li>${item.Product ? item.Product.name : "Törölt termék"} — ${item.quantity} db × ${item.price} Ft</li>
+            `,
+            ).join("")}
+          </ul>
+        `
+            : ""
+        }
+      </div>
+    </div>
+  `,
+    )
+    .join("");
+}
+
 async function loadStats() {
   const countsContainer = document.getElementById("stats-counts");
   if (!countsContainer) return;
@@ -1929,6 +1981,7 @@ document.addEventListener("DOMContentLoaded", () => {
   loadWikiDetail();
   loadStats();
   renderCart();
+  loadMyOrders();
   loadFavorites();
 
   if (window.location.pathname.startsWith("/admin")) {
